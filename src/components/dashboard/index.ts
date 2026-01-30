@@ -1,0 +1,9 @@
+export { default as Sidebar } from "./Sidebar";
+export { default as StatsCard } from "./StatsCard";
+export { default as TaskList } from "./TaskList";
+export { default as MiniCalendar } from "./MiniCalendar";
+export { default as WorkspaceSwitcher } from "./WorkspaceSwitcher";
+export { default as UserMenu } from "./UserMenu";
+export { default as TaskModal } from "./TaskModal";
+export { default as TasksDemo } from "./TasksDemo";
+export { default as CalendarDemo } from "./CalendarDemo";

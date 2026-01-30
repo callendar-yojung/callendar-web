@@ -1,22 +1,195 @@
 @import "tailwindcss";
 
 :root {
+  /* Light theme (default) */
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #18181b;
+
+  --card: #ffffff;
+  --card-foreground: #18181b;
+
+  --popover: #ffffff;
+  --popover-foreground: #18181b;
+
+  --primary: #18181b;
+  --primary-foreground: #fafafa;
+
+  --secondary: #f4f4f5;
+  --secondary-foreground: #18181b;
+
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+
+  --accent: #fee500;
+  --accent-foreground: #18181b;
+
+  --destructive: #ef4444;
+  --destructive-foreground: #fafafa;
+
+  --border: #e4e4e7;
+  --input: #e4e4e7;
+  --ring: #a1a1aa;
+
+  --page-background: #ffffff;
+  --dashboard-background: #fafafa;
+  --sidebar-background: #ffffff;
+  --sidebar-foreground: #18181b;
+  --sidebar-border: #e4e4e7;
+
+  --subtle: #fafafa;
+  --subtle-foreground: #52525b;
+
+  --hover: #f4f4f5;
+  --active: #e4e4e7;
+
+  /* Status colors */
+  --status-todo: #fef3c7;
+  --status-todo-foreground: #92400e;
+  --status-progress: #dbeafe;
+  --status-progress-foreground: #1e40af;
+  --status-done: #dcfce7;
+  --status-done-foreground: #166534;
+}
+
+/* Light theme class */
+:root.light {
+  --background: #ffffff;
+  --foreground: #18181b;
+
+  --card: #ffffff;
+  --card-foreground: #18181b;
+
+  --popover: #ffffff;
+  --popover-foreground: #18181b;
+
+  --primary: #18181b;
+  --primary-foreground: #fafafa;
+
+  --secondary: #f4f4f5;
+  --secondary-foreground: #18181b;
+
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+
+  --accent: #fee500;
+  --accent-foreground: #18181b;
+
+  --destructive: #ef4444;
+  --destructive-foreground: #fafafa;
+
+  --border: #e4e4e7;
+  --input: #e4e4e7;
+  --ring: #a1a1aa;
+
+  --page-background: #ffffff;
+  --dashboard-background: #fafafa;
+  --sidebar-background: #ffffff;
+  --sidebar-foreground: #18181b;
+  --sidebar-border: #e4e4e7;
+
+  --subtle: #fafafa;
+  --subtle-foreground: #52525b;
+
+  --hover: #f4f4f5;
+  --active: #e4e4e7;
+
+  /* Status colors */
+  --status-todo: #fef3c7;
+  --status-todo-foreground: #92400e;
+  --status-progress: #dbeafe;
+  --status-progress-foreground: #1e40af;
+  --status-done: #dcfce7;
+  --status-done-foreground: #166534;
+}
+
+/* Dark theme class - Lighter dark theme */
+:root.dark {
+  --background: #1f1f23;
+  --foreground: #fafafa;
+
+  --card: #27272a;
+  --card-foreground: #fafafa;
+
+  --popover: #27272a;
+  --popover-foreground: #fafafa;
+
+  --primary: #fafafa;
+  --primary-foreground: #18181b;
+
+  --secondary: #3f3f46;
+  --secondary-foreground: #fafafa;
+
+  --muted: #3f3f46;
+  --muted-foreground: #a1a1aa;
+
+  --accent: #fee500;
+  --accent-foreground: #18181b;
+
+  --destructive: #dc2626;
+  --destructive-foreground: #fafafa;
+
+  --border: #3f3f46;
+  --input: #3f3f46;
+  --ring: #52525b;
+
+  --page-background: #1f1f23;
+  --dashboard-background: #18181b;
+  --sidebar-background: #1f1f23;
+  --sidebar-foreground: #fafafa;
+  --sidebar-border: #3f3f46;
+
+  --subtle: #27272a;
+  --subtle-foreground: #a1a1aa;
+
+  --hover: #3f3f46;
+  --active: #52525b;
+
+  /* Status colors */
+  --status-todo: rgba(234, 179, 8, 0.2);
+  --status-todo-foreground: #fde047;
+  --status-progress: rgba(59, 130, 246, 0.2);
+  --status-progress-foreground: #93c5fd;
+  --status-done: rgba(34, 197, 94, 0.2);
+  --status-done-foreground: #86efac;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-page-background: var(--page-background);
+  --color-dashboard-background: var(--dashboard-background);
+  --color-sidebar-background: var(--sidebar-background);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-subtle: var(--subtle);
+  --color-subtle-foreground: var(--subtle-foreground);
+  --color-hover: var(--hover);
+  --color-active: var(--active);
+  --color-status-todo: var(--status-todo);
+  --color-status-todo-foreground: var(--status-todo-foreground);
+  --color-status-progress: var(--status-progress);
+  --color-status-progress-foreground: var(--status-progress-foreground);
+  --color-status-done: var(--status-done);
+  --color-status-done-foreground: var(--status-done-foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {

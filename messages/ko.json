@@ -1,0 +1,378 @@
+{
+  "metadata": {
+    "title": "Kelindor - 팀을 위한 올인원 워크스페이스",
+    "description": "Kelindor(KD)는 팀 협업, 프로젝트 관리, 문서 작성을 하나의 공간에서 해결하는 올인원 생산성 플랫폼입니다. 지금 무료로 시작하세요.",
+    "ogDescription": "팀 협업, 프로젝트 관리, 문서 작성을 하나의 공간에서. Kelindor로 업무 효율을 극대화하세요."
+  },
+  "nav": {
+    "features": "기능",
+    "pricing": "요금제",
+    "customers": "고객 사례",
+    "login": "로그인",
+    "logout": "로그아웃",
+    "getStarted": "무료로 시작하기",
+    "dashboard": "대시보드"
+  },
+  "hero": {
+    "badge": "새로운 AI 기능 출시",
+    "title1": "하나의 워크스페이스.",
+    "title2": "무한한 가능성.",
+    "description": "팀 협업, 프로젝트 관리, 문서 작성을 하나의 공간에서. Kelindor로 업무 효율을 극대화하세요.",
+    "cta": "무료로 시작하기",
+    "demo": "데모 보기",
+    "noCreditCard": "신용카드 필요 없음 · 무료 플랜 영구 제공",
+    "preview": "프로젝트 대시보드 미리보기"
+  },
+  "trustedBy": {
+    "title": "10,000개 이상의 팀이 Kelindor를 신뢰합니다"
+  },
+  "features": {
+    "title": "팀에 필요한 모든 것",
+    "description": "문서부터 프로젝트 관리까지, 팀 협업에 필요한 모든 기능을 제공합니다.",
+    "items": {
+      "docs": {
+        "title": "스마트 문서 작성",
+        "description": "AI가 도와주는 문서 작성으로 아이디어를 빠르게 정리하고 공유하세요. 실시간 협업으로 팀원과 함께 작업할 수 있습니다."
+      },
+      "project": {
+        "title": "유연한 프로젝트 관리",
+        "description": "칸반, 타임라인, 캘린더 등 다양한 뷰로 프로젝트를 관리하세요. 팀에 맞는 워크플로우를 자유롭게 구성할 수 있습니다."
+      },
+      "workspace": {
+        "title": "통합 워크스페이스",
+        "description": "문서, 데이터베이스, 프로젝트가 하나로 연결됩니다. 흩어진 정보를 한 곳에서 관리하고 빠르게 검색하세요."
+      },
+      "ai": {
+        "title": "AI 어시스턴트",
+        "description": "반복 작업을 자동화하고, 인사이트를 발견하세요. AI가 팀의 생산성을 한 단계 높여줍니다."
+      },
+      "security": {
+        "title": "엔터프라이즈 보안",
+        "description": "SOC 2 Type II 인증, SSO, 감사 로그 등 기업 수준의 보안을 제공합니다. 데이터는 안전하게 보호됩니다."
+      },
+      "integrations": {
+        "title": "무한한 연동",
+        "description": "Slack, GitHub, Figma 등 200개 이상의 도구와 연동하세요. 기존 워크플로우를 유지하면서 Kelindor를 사용할 수 있습니다."
+      }
+    }
+  },
+  "stats": {
+    "users": "전 세계 사용자",
+    "teams": "팀 워크스페이스",
+    "uptime": "서비스 가동률",
+    "satisfaction": "고객 만족도"
+  },
+  "pricing": {
+    "title": "심플한 요금제",
+    "description": "팀 규모에 맞는 플랜을 선택하세요. 언제든 업그레이드할 수 있습니다.",
+    "popular": "가장 인기",
+    "free": {
+      "name": "무료",
+      "price": "₩0",
+      "period": "영구 무료",
+      "description": "개인 사용자와 소규모 팀을 위한 플랜",
+      "cta": "무료로 시작하기",
+      "features": [
+        "무제한 페이지",
+        "5명까지 게스트 초대",
+        "기본 페이지 분석",
+        "7일간 페이지 히스토리",
+        "Slack, GitHub 연동"
+      ]
+    },
+    "team": {
+      "name": "팀",
+      "price": "₩8,000",
+      "period": "사용자당 / 월",
+      "description": "성장하는 팀을 위한 협업 기능",
+      "cta": "팀 플랜 시작하기",
+      "features": [
+        "무료 플랜의 모든 기능",
+        "무제한 팀원",
+        "무제한 게스트 초대",
+        "30일간 페이지 히스토리",
+        "고급 권한 관리",
+        "팀 분석 대시보드"
+      ]
+    },
+    "enterprise": {
+      "name": "엔터프라이즈",
+      "price": "문의",
+      "period": "맞춤 견적",
+      "description": "대규모 조직을 위한 보안과 관리 기능",
+      "cta": "영업팀 문의",
+      "features": [
+        "팀 플랜의 모든 기능",
+        "SSO (SAML)",
+        "고급 보안 설정",
+        "감사 로그",
+        "전담 고객 성공 매니저",
+        "SLA 보장"
+      ]
+    }
+  },
+  "cta": {
+    "title": "지금 바로 시작하세요",
+    "description": "더 나은 팀 협업을 위한 첫 걸음. Kelindor와 함께 업무 방식을 혁신하세요.",
+    "getStarted": "무료로 시작하기",
+    "contact": "영업팀 문의"
+  },
+  "footer": {
+    "description": "팀을 위한 올인원 워크스페이스. 협업, 문서, 프로젝트를 하나로.",
+    "product": "제품",
+    "resources": "리소스",
+    "company": "회사",
+    "legal": "법적고지",
+    "features": "기능",
+    "pricing": "요금제",
+    "customers": "고객 사례",
+    "roadmap": "로드맵",
+    "helpCenter": "도움말 센터",
+    "guides": "가이드",
+    "apiDocs": "API 문서",
+    "blog": "블로그",
+    "about": "소개",
+    "careers": "채용",
+    "contact": "연락처",
+    "newsroom": "뉴스룸",
+    "terms": "이용약관",
+    "privacy": "개인정보처리방침",
+    "cookies": "쿠키 정책",
+    "copyright": "© {year} Kelindor. All rights reserved."
+  },
+  "login": {
+    "title": "로그인",
+    "description": "소셜 계정으로 간편하게 로그인하세요",
+    "kakao": "카카오로 로그인"
+  },
+  "home": {
+    "welcome": "환영합니다!",
+    "greeting": "{nickname}님",
+    "loginProvider": "로그인: {provider}",
+    "loading": "로딩 중..."
+  },
+  "dashboard": {
+    "welcome": "안녕하세요, {name}님!",
+    "overview": {
+      "subtitle": "오늘의 업무 현황을 확인하세요"
+    },
+    "workspace": {
+      "personal": "개인",
+      "teams": "팀",
+      "workspaces": "워크스페이스",
+      "teamWorkspaces": "팀 워크스페이스",
+      "createWorkspace": "워크스페이스 만들기",
+      "members": "명",
+      "createTeam": "새 팀 만들기",
+      "enterWorkspaceName": "이름을 입력하세요",
+      "creating": "생성 중...",
+      "createWorkSpaceError": "워크스페이스 생성에 실패했습니다",
+      "personalWorkspace": "개인 워크스페이스",
+      "teamWorkspace": "팀 워크스페이스",
+      "noTeams": "아직 팀이 없습니다",
+      "createNewTeam": "새 팀 만들기",
+      "createTeamDescription": "팀 워크스페이스를 만들어 다른 사람들과 협업하세요",
+      "teamName": "팀 이름",
+      "teamNamePlaceholder": "예: 마케팅 팀",
+      "teamDescription": "설명",
+      "teamDescriptionPlaceholder": "이 팀은 무엇을 하나요?",
+      "cancel": "취소",
+      "create": "팀 만들기",
+      "createTeamError": "팀 생성에 실패했습니다",
+      "delete": "삭제",
+      "deleting": "삭제 중...",
+      "deleteConfirmTitle": "워크스페이스 삭제",
+      "deleteConfirmMessage": "정말 이 워크스페이스를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+      "noWorkspaces": "워크스페이스 없음",
+      "workspaceCount": "워크스페이스"
+    },
+    "nav": {
+      "overview": "개요",
+      "tasks": "태스크",
+      "calendar": "캘린더",
+      "teams": "팀",
+      "settings": "설정",
+      "logout": "로그아웃"
+    },
+    "userMenu": {
+      "language": "언어",
+      "help": "도움 받기",
+      "upgrade": "요금제 업그레이드",
+      "download": "데스크톱 앱 다운로드",
+      "learnMore": "자세히 알아보기"
+    },
+    "stats": {
+      "totalTasks": "오늘의 태스크",
+      "completedTasks": "완료한 태스크",
+      "teams": "참여 팀",
+      "upcomingEvents": "예정된 일정"
+    },
+    "tasks": {
+      "title": "내 태스크",
+      "addTask": "태스크 추가",
+      "today": "오늘",
+      "totalTasks": "전체",
+      "loading": "로딩중...",
+      "viewList": "목록",
+      "viewTimeline": "타임라인",
+      "status": {
+        "pending": "대기중",
+        "in_progress": "진행중",
+        "completed": "완료"
+      },
+      "filter": {
+        "all": "전체",
+        "search": "태스크 검색...",
+        "sortByDate": "날짜순",
+        "sortByPriority": "우선순위순",
+        "sortByStatus": "상태순",
+        "sortByTitle": "제목순",
+        "dateRange": "기간",
+        "reset": "초기화",
+        "tasksCount": "{count}개 태스크",
+        "noTasks": "태스크가 없습니다",
+        "perPage": "{count}개씩 보기",
+        "urgent": "긴급"
+      },
+      "modal": {
+        "title": "새 태스크 추가",
+        "editTitle": "태스크 수정",
+        "taskTitle": "제목",
+        "taskTitlePlaceholder": "태스크 제목을 입력하세요",
+        "startTime": "시작 시간",
+        "endTime": "마감 시간",
+        "content": "내용",
+        "contentPlaceholder": "태스크 내용을 입력하세요",
+        "cancel": "취소",
+        "save": "저장",
+        "create": "생성",
+        "delete": "삭제",
+        "close": "닫기",
+        "edit": "수정",
+        "noContent": "내용이 없습니다",
+        "requiredField": "필수 항목입니다",
+        "endTimeBeforeStart": "마감 시간은 시작 시간 이후여야 합니다"
+      }
+    },
+    "teams": {
+      "title": "내 팀",
+      "createTeam": "팀 만들기",
+      "members": "명",
+      "tasks": "개 태스크"
+    },
+    "calendar": {
+      "title": "캘린더",
+      "upcoming": "다가오는 일정",
+      "tasksCount": "개 태스크",
+      "today": "오늘",
+      "selectDate": "날짜를 선택하세요",
+      "noTasksOnDate": "이 날짜에 태스크가 없습니다",
+      "selectDateFromCalendar": "캘린더에서 날짜를 선택하세요",
+      "add": "추가",
+      "more": "+{count}개 더보기",
+      "weekDays": {
+        "sun": "일",
+        "mon": "월",
+        "tue": "화",
+        "wed": "수",
+        "thu": "목",
+        "fri": "금",
+        "sat": "토"
+      }
+    },
+    "settings": {
+      "title": "설정",
+      "subtitle": "계정 및 애플리케이션 설정을 관리하세요",
+      "nav": {
+        "general": "일반",
+        "account": "계정",
+        "privacy": "개인정보보호",
+        "billing": "결제",
+        "usage": "사용량"
+      },
+      "general": {
+        "title": "일반 설정",
+        "description": "언어, 타임존, 테마 등 기본 설정을 관리합니다",
+        "language": "언어",
+        "languageDesc": "표시 언어를 선택하세요",
+        "timezone": "타임존",
+        "timezoneDesc": "시간대를 설정하세요",
+        "theme": "테마",
+        "themeDesc": "앱 테마를 선택하세요",
+        "notifications": "알림",
+        "notificationsDesc": "푸시 알림을 활성화합니다",
+        "save": "저장"
+      },
+      "account": {
+        "title": "계정",
+        "profile": "프로필 정보",
+        "profileDesc": "계정의 기본 정보를 관리합니다",
+        "name": "이름",
+        "email": "이메일",
+        "emailDesc": "이메일은 변경할 수 없습니다",
+        "save": "저장",
+        "password": "비밀번호 변경",
+        "passwordDesc": "계정의 비밀번호를 변경합니다",
+        "currentPassword": "현재 비밀번호",
+        "newPassword": "새 비밀번호",
+        "confirmPassword": "비밀번호 확인",
+        "updatePassword": "비밀번호 변경",
+        "deleteAccount": "계정 삭제",
+        "deleteAccountDesc": "계정을 삭제하면 모든 데이터가 영구적으로 삭제됩니다",
+        "deleteButton": "계정 삭제"
+      },
+      "privacy": {
+        "title": "개인정보보호",
+        "dataSharing": "데이터 공유",
+        "dataSharingDesc": "데이터 수집 및 공유 설정을 관리합니다",
+        "analytics": "분석 데이터",
+        "analyticsDesc": "서비스 개선을 위한 익명 사용 데이터 수집",
+        "marketing": "마케팅",
+        "marketingDesc": "제품 업데이트 및 마케팅 정보 수신",
+        "thirdParty": "서드파티 공유",
+        "thirdPartyDesc": "통합 서비스와 데이터 공유",
+        "activityLog": "활동 로그",
+        "activityLogDesc": "계정의 모든 활동 기록을 확인합니다",
+        "viewLog": "로그 보기",
+        "exportData": "데이터 내보내기",
+        "exportDataDesc": "모든 데이터를 다운로드합니다",
+        "exportButton": "데이터 내보내기"
+      },
+      "billing": {
+        "title": "결제",
+        "currentPlan": "현재 플랜",
+        "currentPlanDesc": "구독 중인 플랜과 결제 정보를 관리합니다",
+        "upgrade": "업그레이드",
+        "paymentMethod": "결제 수단",
+        "paymentMethodDesc": "결제에 사용할 카드를 관리합니다",
+        "noPaymentMethod": "등록된 결제 수단이 없습니다",
+        "addPaymentMethod": "결제 수단 추가",
+        "history": "결제 내역",
+        "historyDesc": "과거 결제 내역을 확인합니다",
+        "noHistory": "결제 내역이 없습니다"
+      },
+      "usage": {
+        "title": "사용량",
+        "storage": "스토리지",
+        "storageDesc": "사용 중인 스토리지 용량을 확인합니다",
+        "documents": "문서",
+        "files": "파일",
+        "other": "기타",
+        "api": "API 호출",
+        "apiDesc": "이번 달 API 사용량을 확인합니다",
+        "requests": "요청",
+        "teamMembers": "팀 멤버",
+        "teamMembersDesc": "팀 멤버 현황을 확인합니다",
+        "members": "명",
+        "inviteMember": "멤버 초대",
+        "activity": "활동 통계",
+        "activityDesc": "이번 달 활동 통계를 확인합니다",
+        "tasksCreated": "생성한 태스크",
+        "tasksCompleted": "완료한 태스크",
+        "comments": "댓글",
+        "meetings": "미팅",
+        "thisMonth": "이번 달"
+      }
+    }
+  }
+}

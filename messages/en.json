@@ -1,0 +1,377 @@
+{
+  "metadata": {
+    "title": "Kelindor - All-in-One Workspace for Teams",
+    "description": "Kelindor (KD) is an all-in-one productivity platform that handles team collaboration, project management, and documentation in one place. Start free today.",
+    "ogDescription": "Team collaboration, project management, and documentation in one place. Maximize productivity with Kelindor."
+  },
+  "nav": {
+    "features": "Features",
+    "pricing": "Pricing",
+    "customers": "Customers",
+    "login": "Log in",
+    "logout": "Log out",
+    "getStarted": "Get started free",
+    "dashboard": "Dashboard"
+  },
+  "hero": {
+    "badge": "New AI features launched",
+    "title1": "One workspace.",
+    "title2": "Infinite possibilities.",
+    "description": "Team collaboration, project management, and documentation in one place. Maximize productivity with Kelindor.",
+    "cta": "Get started free",
+    "demo": "View demo",
+    "noCreditCard": "No credit card required · Free plan forever",
+    "preview": "Project dashboard preview"
+  },
+  "trustedBy": {
+    "title": "Trusted by over 10,000 teams"
+  },
+  "features": {
+    "title": "Everything your team needs",
+    "description": "From documentation to project management, all the features you need for team collaboration.",
+    "items": {
+      "docs": {
+        "title": "Smart Documentation",
+        "description": "Create and share ideas quickly with AI-powered documentation. Collaborate in real-time with your team members."
+      },
+      "project": {
+        "title": "Flexible Project Management",
+        "description": "Manage projects with various views like Kanban, Timeline, and Calendar. Customize workflows to fit your team."
+      },
+      "workspace": {
+        "title": "Unified Workspace",
+        "description": "Documents, databases, and projects all connected. Manage scattered information in one place and search quickly."
+      },
+      "ai": {
+        "title": "AI Assistant",
+        "description": "Automate repetitive tasks and discover insights. AI takes your team's productivity to the next level."
+      },
+      "security": {
+        "title": "Enterprise Security",
+        "description": "SOC 2 Type II certified, SSO, audit logs, and more enterprise-grade security. Your data is safely protected."
+      },
+      "integrations": {
+        "title": "Endless Integrations",
+        "description": "Connect with 200+ tools like Slack, GitHub, and Figma. Use Kelindor while maintaining your existing workflow."
+      }
+    }
+  },
+  "stats": {
+    "users": "Users worldwide",
+    "teams": "Team workspaces",
+    "uptime": "Service uptime",
+    "satisfaction": "Customer satisfaction"
+  },
+  "pricing": {
+    "title": "Simple pricing",
+    "description": "Choose the plan that fits your team. Upgrade anytime.",
+    "popular": "Most popular",
+    "free": {
+      "name": "Free",
+      "price": "$0",
+      "period": "Free forever",
+      "description": "For individuals and small teams",
+      "cta": "Get started free",
+      "features": [
+        "Unlimited pages",
+        "Up to 5 guests",
+        "Basic page analytics",
+        "7-day page history",
+        "Slack, GitHub integration"
+      ]
+    },
+    "team": {
+      "name": "Team",
+      "price": "$8",
+      "period": "per user / month",
+      "description": "Collaboration features for growing teams",
+      "cta": "Start team plan",
+      "features": [
+        "Everything in Free",
+        "Unlimited team members",
+        "Unlimited guests",
+        "30-day page history",
+        "Advanced permissions",
+        "Team analytics dashboard"
+      ]
+    },
+    "enterprise": {
+      "name": "Enterprise",
+      "price": "Contact us",
+      "period": "Custom pricing",
+      "description": "Security and admin features for large organizations",
+      "cta": "Contact sales",
+      "features": [
+        "Everything in Team",
+        "SSO (SAML)",
+        "Advanced security",
+        "Audit logs",
+        "Dedicated success manager",
+        "SLA guarantee"
+      ]
+    }
+  },
+  "cta": {
+    "title": "Get started today",
+    "description": "The first step to better team collaboration. Transform how you work with Kelindor.",
+    "getStarted": "Get started free",
+    "contact": "Contact sales"
+  },
+  "footer": {
+    "description": "All-in-one workspace for teams. Collaboration, docs, and projects unified.",
+    "product": "Product",
+    "resources": "Resources",
+    "company": "Company",
+    "legal": "Legal",
+    "features": "Features",
+    "pricing": "Pricing",
+    "customers": "Customers",
+    "roadmap": "Roadmap",
+    "helpCenter": "Help Center",
+    "guides": "Guides",
+    "apiDocs": "API Docs",
+    "blog": "Blog",
+    "about": "About",
+    "careers": "Careers",
+    "contact": "Contact",
+    "newsroom": "Newsroom",
+    "terms": "Terms of Service",
+    "privacy": "Privacy Policy",
+    "cookies": "Cookie Policy",
+    "copyright": "© {year} Kelindor. All rights reserved."
+  },
+  "login": {
+    "title": "Log in",
+    "description": "Sign in easily with your social account",
+    "kakao": "Continue with Kakao"
+  },
+  "home": {
+    "welcome": "Welcome!",
+    "greeting": "Hello, {nickname}",
+    "loginProvider": "Logged in via: {provider}",
+    "loading": "Loading..."
+  },
+  "dashboard": {
+    "welcome": "Hello, {name}!",
+    "overview": {
+      "subtitle": "Check your work status for today"
+    },
+    "workspace": {
+      "personal": "Personal",
+      "teams": "Teams",
+      "workspaces": "Workspaces",
+      "createWorkspace": "Create Workspace",
+      "members": "members",
+      "createTeam": "Create new team",
+      "enterWorkspaceName": "Enter name",
+      "creating": "Creating...",
+      "createWorkSpaceError": "Failed to create workspace",
+      "personalWorkspace": "Personal Workspace",
+      "teamWorkspace": "Team Workspace",
+      "noTeams": "No teams yet",
+      "createNewTeam": "Create New Team",
+      "createTeamDescription": "Create a team workspace to collaborate with others",
+      "teamName": "Team Name",
+      "teamNamePlaceholder": "e.g., Marketing Team",
+      "teamDescription": "Description",
+      "teamDescriptionPlaceholder": "What's this team about?",
+      "cancel": "Cancel",
+      "create": "Create Team",
+      "createTeamError": "Failed to create team",
+      "delete": "Delete",
+      "deleting": "Deleting...",
+      "deleteConfirmTitle": "Delete Workspace",
+      "deleteConfirmMessage": "Are you sure you want to delete this workspace? This action cannot be undone.",
+      "noWorkspaces": "No workspaces",
+      "workspaceCount": "workspaces"
+    },
+    "nav": {
+      "overview": "Overview",
+      "tasks": "Tasks",
+      "calendar": "Calendar",
+      "teams": "Teams",
+      "settings": "Settings",
+      "logout": "Log out"
+    },
+    "userMenu": {
+      "language": "Language",
+      "help": "Get Help",
+      "upgrade": "Upgrade Plan",
+      "download": "Download Desktop App",
+      "learnMore": "Learn More"
+    },
+    "stats": {
+      "totalTasks": "Today Tasks",
+      "completedTasks": "Completed Tasks",
+      "teams": "Teams",
+      "upcomingEvents": "Upcoming Events"
+    },
+    "tasks": {
+      "title": "My Tasks",
+      "addTask": "Add Task",
+      "today": "Today",
+      "totalTasks": "Total",
+      "loading": "Loading...",
+      "viewList": "List",
+      "viewTimeline": "Timeline",
+      "status": {
+        "pending": "Pending",
+        "in_progress": "In Progress",
+        "completed": "Completed"
+      },
+      "filter": {
+        "all": "All",
+        "search": "Search tasks...",
+        "sortByDate": "By Date",
+        "sortByPriority": "By Priority",
+        "sortByStatus": "By Status",
+        "sortByTitle": "By Title",
+        "dateRange": "Date Range",
+        "reset": "Reset",
+        "tasksCount": "{count} tasks",
+        "noTasks": "No tasks found",
+        "perPage": "{count} per page",
+        "urgent": "Urgent"
+      },
+      "modal": {
+        "title": "Add New Task",
+        "editTitle": "Edit Task",
+        "taskTitle": "Title",
+        "taskTitlePlaceholder": "Enter task title",
+        "startTime": "Start Time",
+        "endTime": "End Time",
+        "content": "Content",
+        "contentPlaceholder": "Enter task content",
+        "cancel": "Cancel",
+        "save": "Save",
+        "create": "Create",
+        "delete": "Delete",
+        "close": "Close",
+        "edit": "Edit",
+        "noContent": "No content",
+        "requiredField": "This field is required",
+        "endTimeBeforeStart": "End time must be after start time"
+      }
+    },
+    "teams": {
+      "title": "My Teams",
+      "createTeam": "Create Team",
+      "members": "members",
+      "tasks": "tasks"
+    },
+    "calendar": {
+      "title": "Calendar",
+      "upcoming": "Upcoming Events",
+      "tasksCount": "tasks",
+      "today": "Today",
+      "selectDate": "Select a date",
+      "noTasksOnDate": "No tasks on this date",
+      "selectDateFromCalendar": "Select a date from the calendar",
+      "add": "Add",
+      "more": "+{count} more",
+      "weekDays": {
+        "sun": "Sun",
+        "mon": "Mon",
+        "tue": "Tue",
+        "wed": "Wed",
+        "thu": "Thu",
+        "fri": "Fri",
+        "sat": "Sat"
+      }
+    },
+    "settings": {
+      "title": "Settings",
+      "subtitle": "Manage your account and application settings",
+      "nav": {
+        "general": "General",
+        "account": "Account",
+        "privacy": "Privacy",
+        "billing": "Billing",
+        "usage": "Usage"
+      },
+      "general": {
+        "title": "General Settings",
+        "description": "Manage basic settings like language, timezone, and theme",
+        "language": "Language",
+        "languageDesc": "Choose your display language",
+        "timezone": "Timezone",
+        "timezoneDesc": "Set your timezone",
+        "theme": "Theme",
+        "themeDesc": "Choose app theme",
+        "notifications": "Notifications",
+        "notificationsDesc": "Enable push notifications",
+        "save": "Save"
+      },
+      "account": {
+        "title": "Account",
+        "profile": "Profile Information",
+        "profileDesc": "Manage your account's basic information",
+        "name": "Name",
+        "email": "Email",
+        "emailDesc": "Email cannot be changed",
+        "save": "Save",
+        "password": "Change Password",
+        "passwordDesc": "Change your account password",
+        "currentPassword": "Current Password",
+        "newPassword": "New Password",
+        "confirmPassword": "Confirm Password",
+        "updatePassword": "Update Password",
+        "deleteAccount": "Delete Account",
+        "deleteAccountDesc": "Deleting your account will permanently remove all your data",
+        "deleteButton": "Delete Account"
+      },
+      "privacy": {
+        "title": "Privacy",
+        "dataSharing": "Data Sharing",
+        "dataSharingDesc": "Manage data collection and sharing settings",
+        "analytics": "Analytics",
+        "analyticsDesc": "Collect anonymous usage data to improve service",
+        "marketing": "Marketing",
+        "marketingDesc": "Receive product updates and marketing information",
+        "thirdParty": "Third-party Sharing",
+        "thirdPartyDesc": "Share data with integrated services",
+        "activityLog": "Activity Log",
+        "activityLogDesc": "View all account activity records",
+        "viewLog": "View Log",
+        "exportData": "Export Data",
+        "exportDataDesc": "Download all your data",
+        "exportButton": "Export Data"
+      },
+      "billing": {
+        "title": "Billing",
+        "currentPlan": "Current Plan",
+        "currentPlanDesc": "Manage your subscription plan and payment information",
+        "upgrade": "Upgrade",
+        "paymentMethod": "Payment Method",
+        "paymentMethodDesc": "Manage payment cards",
+        "noPaymentMethod": "No payment method registered",
+        "addPaymentMethod": "Add Payment Method",
+        "history": "Payment History",
+        "historyDesc": "View past payment records",
+        "noHistory": "No payment history"
+      },
+      "usage": {
+        "title": "Usage",
+        "storage": "Storage",
+        "storageDesc": "Check your storage usage",
+        "documents": "Documents",
+        "files": "Files",
+        "other": "Other",
+        "api": "API Calls",
+        "apiDesc": "Check this month's API usage",
+        "requests": "requests",
+        "teamMembers": "Team Members",
+        "teamMembersDesc": "Check team member status",
+        "members": "members",
+        "inviteMember": "Invite Member",
+        "activity": "Activity Statistics",
+        "activityDesc": "Check this month's activity statistics",
+        "tasksCreated": "Tasks Created",
+        "tasksCompleted": "Tasks Completed",
+        "comments": "Comments",
+        "meetings": "Meetings",
+        "thisMonth": "this month"
+      }
+    }
+  }
+}
