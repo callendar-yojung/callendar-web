@@ -67,6 +67,7 @@ jobs:
             --exclude=node_modules \
             --exclude=.git \
             ./ deploy@${{ secrets.SERVER_HOST }}:/home/deploy/apps/api
+          
 
       # 7️⃣ 서버에서 실행
       - name: Run on server
