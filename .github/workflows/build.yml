@@ -66,19 +66,24 @@ jobs:
 
       - name: Deploy files
         run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/callendar.pem
+          chmod 600 ~/.ssh/callendar.pem
+          
           rsync -avz \
-          -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
-          --delete \
-          --exclude=node_modules \
-          --exclude=.git \
-          --exclude=.env \
-          --exclude=uploads \
-          --exclude=logs \
-          .next \
-          public \
-          package.json \
-          ecosystem.config.js \
-          deploy@${{ secrets.SERVER_HOST }}:/home/deploy/apps/api
+            -e "ssh -i ~/.ssh/callendar.pem -o StrictHostKeyChecking=no" \
+            --delete \
+            --ignore-missing-args \
+            --exclude=node_modules \
+            --exclude=.git \
+            --exclude=.env \
+            --exclude=uploads \
+            --exclude=logs \
+            .next \
+            public \
+            package.json \
+            ecosystem.config.js \
+            deploy@${{ secrets.SERVER_HOST }}:/home/deploy/apps/api
 
       # 7️⃣ 서버에서 실행
       - name: Run on server
