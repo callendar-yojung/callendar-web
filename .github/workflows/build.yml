@@ -57,6 +57,7 @@ jobs:
           echo "HOST=${{ secrets.SERVER_HOST }}"
           echo "KEY_LEN=${#SSH_PRIVATE_KEY}"
 
+
       # 5️⃣ SSH 키 설정
       - name: Setup SSH
         run: |
