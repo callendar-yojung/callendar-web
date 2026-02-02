@@ -51,6 +51,11 @@ jobs:
       # 4️⃣ 빌드
       - name: Build
         run: npm run build
+        # 디버그용: 시크릿 값 확인 (실제 배포 시에는 제거 권장)
+      - name: Debug secrets
+        run: |
+          echo "HOST=${{ secrets.SERVER_HOST }}"
+          echo "KEY_LEN=${#SSH_PRIVATE_KEY}"
 
       # 5️⃣ SSH 키 설정
       - name: Setup SSH
@@ -78,4 +83,6 @@ jobs:
             pm2 reload ecosystem.config.js || pm2 start ecosystem.config.js
             pm2 save
           EOF
+          
+      
 
