@@ -47,6 +47,7 @@ jobs:
       # 4️⃣ 빌드
       - name: Install & Build
         run: |
+          npm install -g next 
           npm ci
           npm run build
 
