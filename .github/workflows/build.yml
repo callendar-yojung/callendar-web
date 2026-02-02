@@ -9,7 +9,6 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
       # NextAuth
       AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
       NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
@@ -63,19 +62,21 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H "${{ secrets.SERVER_HOST }}" >> ~/.ssh/known_hosts || true
 
-      # 디버그용: 시크릿 값 확인 (실제 배포 시에는 제거 권장)
-      - name: Debug secrets
-        run: |
-          echo "HOST=${{ secrets.SERVER_HOST }}"
-          echo "KEY_LEN=${#SSH_PRIVATE_KEY}"
 
-      # 6️⃣ 서버로 파일 전송
       - name: Deploy files
         run: |
-          rsync -avz --delete \
+          rsync -avz \
+            --delete \
             --exclude=node_modules \
             --exclude=.git \
-            ./ deploy@${{ secrets.SERVER_HOST }}:/home/deploy/apps/api
+            --exclude=.env \
+            --exclude=uploads \
+            --exclude=logs \
+            .next \
+            public \
+            package.json \
+            ecosystem.config.js \
+            deploy@${{ secrets.SERVER_HOST }}:/home/deploy/apps/api
 
       # 7️⃣ 서버에서 실행
       - name: Run on server
