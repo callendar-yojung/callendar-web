@@ -44,32 +44,21 @@ jobs:
         with:
           node-version: 20
 
-      # 3️⃣ 의존성 설치
-      - name: Install dependencies
-        run: npm ci
-
       # 4️⃣ 빌드
-      - name: Build
-        run: npm run build
-
-
+      - name: Install & Build
+        run: |
+          npm ci
+          npm run build
 
       # 5️⃣ SSH 키 설정
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
-          cat << 'EOF' > ~/.ssh/id_rsa
-          ${{ secrets.SSH_PRIVATE_KEY }}
-          EOF
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/callendar.pem
+          chmod 600 ~/.ssh/callendar.pem
 
       - name: Deploy files
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/callendar.pem
-          chmod 600 ~/.ssh/callendar.pem
-          
           rsync -avz \
             -e "ssh -i ~/.ssh/callendar.pem -o StrictHostKeyChecking=no" \
             --delete \
@@ -85,16 +74,11 @@ jobs:
             ecosystem.config.js \
             deploy@${{ secrets.SERVER_HOST }}:/home/deploy/apps/api
 
-      # 7️⃣ 서버에서 실행
-      - name: Run on server
+      # 6️⃣ PM2 재시작
+      - name: Restart PM2
         run: |
-          ssh deploy@${{ secrets.SERVER_HOST }} << 'EOF'
-            cd /home/deploy/apps/api
-            npm ci
-            npm run build
-            pm2 reload ecosystem.config.js || pm2 start ecosystem.config.js
-            pm2 save
-          EOF
+          ssh -i ~/.ssh/callendar.pem -o StrictHostKeyChecking=no deploy@${{ secrets.SERVER_HOST }} \
+            "cd /home/deploy/apps/api && pm2 restart ecosystem.config.js || pm2 start ecosystem.config.js"
           
       
 
