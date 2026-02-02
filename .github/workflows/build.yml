@@ -54,7 +54,7 @@ jobs:
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/callendar.pem
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/callendar.pem
           chmod 600 ~/.ssh/callendar.pem
 
       - name: Deploy files
