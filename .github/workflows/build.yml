@@ -74,6 +74,7 @@ jobs:
             ecosystem.config.js \
             deploy@${{ secrets.SERVER_HOST }}:/home/deploy/apps/api
 
+
       # 6️⃣ PM2 재시작
       - name: Restart PM2
         run: |
