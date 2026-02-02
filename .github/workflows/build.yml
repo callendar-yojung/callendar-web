@@ -69,7 +69,8 @@ jobs:
             --exclude=.env \
             --exclude=uploads \
             --exclude=logs \
-            ./ .next \
+          
+            .next \
             public \
             package.json \
             ecosystem.config.js \
