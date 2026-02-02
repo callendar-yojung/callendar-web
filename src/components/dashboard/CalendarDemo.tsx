@@ -8,8 +8,8 @@ import TaskModal, { type TaskFormData } from "./TaskModal";
 interface Task {
   id: number;
   start_time: string;
-  end_time: string;
-  content: string | null;
+  end_time?: string;
+  content?: string;
   workspace_id: number;
 }
 
@@ -80,7 +80,7 @@ export default function CalendarDemo() {
 
     return tasks.filter((task) => {
       const taskStartDate = new Date(task.start_time).toISOString().split("T")[0];
-      const taskEndDate = new Date(task.end_time).toISOString().split("T")[0];
+      const taskEndDate = new Date(task.end_time || task.start_time).toISOString().split("T")[0];
       return dateStr >= taskStartDate && dateStr <= taskEndDate;
     });
   };
@@ -344,7 +344,7 @@ export default function CalendarDemo() {
                     {task.content || "Task"}
                   </div>
                   <div className="mt-1 text-xs text-muted-foreground">
-                    {formatTime(task.start_time)} - {formatTime(task.end_time)}
+                    {formatTime(task.start_time)} - {formatTime(task.end_time || task.start_time)}
                   </div>
                 </div>
               ))
@@ -357,7 +357,12 @@ export default function CalendarDemo() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSave={handleSaveTask}
-        initialDate={selectedDate || undefined}
+        initialData={selectedDate ? {
+          title: '',
+          start_time: selectedDate.toISOString(),
+          end_time: new Date(selectedDate.getTime() + 60 * 60 * 1000).toISOString(),
+          content: ''
+        } : undefined}
       />
     </div>
   );

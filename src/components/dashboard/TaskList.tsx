@@ -438,7 +438,13 @@ export default function TaskList() {
         onSave={handleSaveTask}
         onDelete={handleDeleteTask}
         mode={modalMode}
-        initialData={selectedTask}
+        initialData={selectedTask ? {
+          id: selectedTask.id,
+          title: selectedTask.title,
+          start_time: selectedTask.start_time,
+          end_time: selectedTask.end_time,
+          content: selectedTask.content || '' // null을 빈 문자열로 변환
+        } : null}
       />
     </>
   );

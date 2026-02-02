@@ -43,7 +43,7 @@ export async function GET(
 // PATCH /api/teams/[id] - 팀 수정
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getAuthUser(request);
@@ -51,7 +51,8 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const teamId = Number(params.id);
+    const { id } = await params;
+    const teamId = Number(id);
     if (isNaN(teamId)) {
       return NextResponse.json({ error: "Invalid team ID" }, { status: 400 });
     }
