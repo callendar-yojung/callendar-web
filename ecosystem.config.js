@@ -4,7 +4,7 @@ module.exports = {
             name: 'callendar-api',
             script: 'node_modules/next/dist/bin/next',
             args: 'start',
-            cwd: '/home/deploy/apps/api',
+            cwd: '/home/callendar/apps/api',
             instances: 1,
             autorestart: true,
             watch: false,
