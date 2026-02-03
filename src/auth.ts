@@ -15,20 +15,12 @@ declare module "next-auth" {
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  trustHost: true, // ⭐ 추가!
   providers: [
     Kakao({
       clientId: process.env.AUTH_KAKAO_ID!,
       clientSecret: process.env.AUTH_KAKAO_SECRET!,
     }),
-    // 다른 프로바이더 추가 예시:
-    // Google({
-    //   clientId: process.env.AUTH_GOOGLE_ID!,
-    //   clientSecret: process.env.AUTH_GOOGLE_SECRET!,
-    // }),
-    // Naver({
-    //   clientId: process.env.AUTH_NAVER_ID!,
-    //   clientSecret: process.env.AUTH_NAVER_SECRET!,
-    // }),
   ],
   callbacks: {
     async signIn({ user, account }) {
@@ -36,9 +28,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
       try {
         const member = await findOrCreateMember(
-          account.provider,
-          account.providerAccountId,
-          user.email ?? null
+            account.provider,
+            account.providerAccountId,
+            user.email ?? null
         );
 
         (user as Record<string, unknown>).memberId = member.member_id;
