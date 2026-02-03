@@ -9,8 +9,13 @@ CREATE TABLE IF NOT EXISTS members (
   lasted_at      DATETIME,         -- 마지막 로그인
   email          VARCHAR(200),
   phone_number   VARCHAR(100),
-  nickname       VARCHAR(200)      -- 자동 생성
+  nickname       VARCHAR(200),     -- 자동 생성
+  UNIQUE KEY unique_provider (provider, provider_id)  -- 중복 가입 방지
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 인덱스 추가
+CREATE INDEX idx_members_email ON members(email);
+CREATE INDEX idx_members_provider ON members(provider, provider_id);
 
 -- 2. 팀 테이블
 CREATE TABLE IF NOT EXISTS teams (
@@ -41,8 +46,13 @@ CREATE TABLE IF NOT EXISTS team_members (
   team_role_id    BIGINT NOT NULL,
   FOREIGN KEY (team_id) REFERENCES teams(team_id),
   FOREIGN KEY (member_id) REFERENCES members(member_id),
-  FOREIGN KEY (team_role_id) REFERENCES team_roles(team_role_id)
+  FOREIGN KEY (team_role_id) REFERENCES team_roles(team_role_id),
+  UNIQUE KEY unique_team_member (team_id, member_id)  -- 같은 팀에 중복 가입 방지
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 인덱스 추가
+CREATE INDEX idx_team_members_member ON team_members(member_id);
+CREATE INDEX idx_team_members_team ON team_members(team_id);
 
 -- 5. 권한 테이블
 CREATE TABLE IF NOT EXISTS permissions (
@@ -80,7 +90,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   id          BIGINT PRIMARY KEY AUTO_INCREMENT,
   title       VARCHAR(100) NOT NULL,
   start_time  DATETIME NOT NULL,
-  end_time    DATETIME NOT NULL,
+  end_time    DATETIME,                  -- NULL 허용 (진행 중인 태스크)
   content     TEXT,
   status      VARCHAR(50) DEFAULT 'TODO',  -- TODO, IN_PROGRESS, DONE 등
   created_at  DATETIME NOT NULL,
@@ -90,16 +100,24 @@ CREATE TABLE IF NOT EXISTS tasks (
   workspace_id BIGINT NOT NULL,          -- 워크스페이스 소속
   FOREIGN KEY (created_by) REFERENCES members(member_id),
   FOREIGN KEY (updated_by) REFERENCES members(member_id),
-  FOREIGN KEY (workspace_id) REFERENCES workspaces(workspace_id)
+  FOREIGN KEY (workspace_id) REFERENCES workspaces(workspace_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 9. 회원 태스크 테��블
+-- 인덱스 추가 (성능 최적화)
+CREATE INDEX idx_tasks_workspace ON tasks(workspace_id);
+CREATE INDEX idx_tasks_created_by ON tasks(created_by);
+CREATE INDEX idx_tasks_status ON tasks(status);
+CREATE INDEX idx_tasks_start_time ON tasks(start_time);
+CREATE INDEX idx_tasks_end_time ON tasks(end_time);
+
+-- 9. 회원 태스크 테이블
 CREATE TABLE IF NOT EXISTS member_tasks (
   member_task_id  BIGINT PRIMARY KEY AUTO_INCREMENT,
   member_id       BIGINT NOT NULL,
   task_id         BIGINT NOT NULL,
   FOREIGN KEY (member_id) REFERENCES members(member_id),
-  FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
+  FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+  UNIQUE KEY unique_member_task (member_id, task_id)  -- 중복 할당 방지
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 10. 팀 태스크 테이블
@@ -108,7 +126,8 @@ CREATE TABLE IF NOT EXISTS team_tasks (
   team_id       BIGINT NOT NULL,
   task_id       BIGINT NOT NULL,
   FOREIGN KEY (team_id) REFERENCES teams(team_id),
-  FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
+  FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+  UNIQUE KEY unique_team_task (team_id, task_id)  -- 중복 할당 방지
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 인덱스 추가 (성능 최적화)
@@ -116,5 +135,3 @@ CREATE INDEX idx_member_tasks_member ON member_tasks(member_id);
 CREATE INDEX idx_member_tasks_task ON member_tasks(task_id);
 CREATE INDEX idx_team_tasks_team ON team_tasks(team_id);
 CREATE INDEX idx_team_tasks_task ON team_tasks(task_id);
-CREATE INDEX idx_tasks_status ON tasks(status);
-CREATE INDEX idx_tasks_start_time ON tasks(start_time);
