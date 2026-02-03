@@ -68,13 +68,17 @@ jobs:
             --exclude=node_modules \
             --exclude=.git \
             --exclude=.env \
+            --exclude=.env.local \
             --exclude=uploads \
             --exclude=logs \
-            .next/ \
-            public/ \
+            --exclude=.next/cache \
+            .next \
+            public \
             package.json \
+            package-lock.json \
             ecosystem.config.js \
-            deploy@${{ secrets.SERVER_HOST }}:/home/deploy/apps/api
+            deploy@${{ secrets.SERVER_HOST }}:/home/deploy/apps/api/
+
 
       # 🆕 환경 변수 파일 생성
       - name: Create .env.production
