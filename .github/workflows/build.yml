@@ -77,14 +77,14 @@ jobs:
             package.json \
             package-lock.json \
             ecosystem.config.js \
-            deploy@${{ secrets.SERVER_HOST }}:/home/deploy/apps/api/
+            callendar@${{ secrets.SERVER_HOST }}:/home/callendar/apps/api/
 
 
       # 🆕 환경 변수 파일 생성
       - name: Create .env.production
         run: |
-          ssh -i ~/.ssh/callendar.pem -o StrictHostKeyChecking=no deploy@${{ secrets.SERVER_HOST }} << 'EOF'
-            cd /home/deploy/apps/api
+          ssh -i ~/.ssh/callendar.pem -o StrictHostKeyChecking=no callendar@${{ secrets.SERVER_HOST }} << 'EOF'
+            cd /home/callendar/apps/api
             cat > .env.production << 'ENVEOF'
             AUTH_SECRET=${{ secrets.AUTH_SECRET }}
             NEXTAUTH_URL=${{ secrets.NEXTAUTH_URL }}
@@ -107,7 +107,7 @@ jobs:
       - name: Install dependencies and restart PM2
         run: |
           ssh -i ~/.ssh/callendar.pem -o StrictHostKeyChecking=no deploy@${{ secrets.SERVER_HOST }} << 'EOF'
-            cd /home/deploy/apps/api
+            cd /home/callendar/apps/api
             npm ci --production
             pm2 restart ecosystem.config.js || pm2 start ecosystem.config.js
           EOF
