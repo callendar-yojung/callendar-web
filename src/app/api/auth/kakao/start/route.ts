@@ -36,9 +36,9 @@ export async function GET(request: NextRequest) {
 
     // redirect_uri는 항상 카카오에 등록된 HTTPS URL을 사용
     // 카카오는 커스텀 스킴(deskcal://)을 허용하지 않음
-    // const redirectUri = "https://trabien.com/api/auth/kakao/callback";
-    const redirectUri = "http://localhost:3000/api/auth/kakao/callback";
-
+    const redirectUri = process.env.NODE_ENV === 'production'
+        ? "https://trabien.com/api/auth/kakao/callback"
+        : "http://localhost:3000/api/auth/kakao/callback";
 
     // state 파라미터에 앱의 callback URL을 저장
     // OAuth 흐름이 완료된 후 이 URL로 토큰을 전달함
