@@ -51,8 +51,9 @@ export async function GET(request: NextRequest) {
     });
 
     // redirect_uri는 반드시 카카오에 등록된 URL을 사용해야 함
-    // const redirectUri = "https://trabien.com/api/auth/kakao/callback";
-    const redirectUri = "http://localhost:3000/api/auth/kakao/callback";
+    const redirectUri = process.env.NODE_ENV === 'production'
+        ? "https://trabien.com/api/auth/kakao/callback"
+        : "http://localhost:3000/api/auth/kakao/callback";
 
 
     // 1. 카카오 액세스 토큰 받기
