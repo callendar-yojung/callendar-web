@@ -3,40 +3,57 @@ import { findOrCreateMember } from "@/lib/member";
 import { generateAccessToken, generateRefreshToken } from "@/lib/jwt";
 
 /**
- * GET /api/auth/kakao/callback?code=XXX
- * 카카오 OAuth 콜백을 처리합니다 (Tauri 앱용).
- *
- * Architecture: Next.js App Router + Tauri Desktop App
+ * GET /api/auth/kakao/callback?code=XXX&state=deskcal://auth/callback
+ * 카카오 OAuth 콜백을 처리합니다.
  *
  * Flow:
- * 1. tauri-plugin-oauth가 localhost:8888에서 카카오 콜백 수신
- * 2. 카카오 인증 코드로 액세스 토큰 교환
+ * 1. 카카오에서 code와 state(앱 callback URL)를 포함하여 리다이렉트
+ * 2. 카카오 인증 코드로 액세스 토큰 교환 (redirect_uri는 반드시 카카오에 등록된 URL 사용)
  * 3. 카카오 사용자 정보 가져오기
  * 4. DB에서 멤버 찾기/생성
  * 5. JWT 토큰 생성
- * 6. JSON으로 토큰과 사용자 정보 반환 (브라우저 리다이렉트 없음)
+ * 6. state에 커스텀 스킴이 있으면 해당 URL로 토큰과 함께 리다이렉트
+ *    없으면 JSON으로 반환 (레거시 호환)
  */
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const code = searchParams.get("code");
+  const state = searchParams.get("state");
   const error = searchParams.get("error");
 
+  // state에서 앱 callback URL 추출
+  const appCallback = state ? decodeURIComponent(state) : null;
+
+  // 에러 처리 헬퍼 함수
+  const handleError = (errorMessage: string, status: number) => {
+    // 앱 callback이 있으면 에러와 함께 리다이렉트
+    if (appCallback && isCustomScheme(appCallback)) {
+      const errorUrl = new URL(appCallback);
+      errorUrl.searchParams.set("error", errorMessage);
+      return NextResponse.redirect(errorUrl.toString());
+    }
+    // 없으면 JSON 반환
+    return NextResponse.json({ error: errorMessage }, { status });
+  };
+
   if (error) {
-    return NextResponse.json(
-        { error: `Kakao OAuth error: ${error}` },
-        { status: 400 }
-    );
+    return handleError(`Kakao OAuth error: ${error}`, 400);
   }
 
   if (!code) {
-    return NextResponse.json(
-        { error: "Authorization code is missing" },
-        { status: 400 }
-    );
+    return handleError("Authorization code is missing", 400);
   }
 
   try {
-    console.log("🔑 카카오 OAuth 콜백 처리 시작:", { code: code.substring(0, 10) + "..." });
+    console.log("🔑 카카오 OAuth 콜백 처리 시작:", {
+      code: code.substring(0, 10) + "...",
+      appCallback: appCallback
+    });
+
+    // redirect_uri는 반드시 카카오에 등록된 URL을 사용해야 함
+    // const redirectUri = "https://trabien.com/api/auth/kakao/callback";
+    const redirectUri = "http://localhost:3000/api/auth/kakao/callback";
+
 
     // 1. 카카오 액세스 토큰 받기
     const tokenResponse = await fetch("https://kauth.kakao.com/oauth/token", {
@@ -49,18 +66,14 @@ export async function GET(request: NextRequest) {
         client_id: process.env.AUTH_KAKAO_ID!,
         client_secret: process.env.AUTH_KAKAO_SECRET!,
         code,
-        // Tauri 앱은 localhost:8888로 고정
-        redirect_uri: "http://localhost:8888",
+        redirect_uri: redirectUri,
       }),
     });
 
     if (!tokenResponse.ok) {
       const errorData = await tokenResponse.text();
       console.error("❌ 카카오 토큰 에러:", errorData);
-      return NextResponse.json(
-          { error: "Failed to get Kakao access token" },
-          { status: 500 }
-      );
+      return handleError("Failed to get Kakao access token", 500);
     }
 
     const tokenData = await tokenResponse.json();
@@ -76,10 +89,7 @@ export async function GET(request: NextRequest) {
 
     if (!userResponse.ok) {
       console.error("❌ 카카오 사용자 정보 가져오기 실패");
-      return NextResponse.json(
-          { error: "Failed to get Kakao user info" },
-          { status: 500 }
-      );
+      return handleError("Failed to get Kakao user info", 500);
     }
 
     const kakaoUser = await userResponse.json();
@@ -109,7 +119,28 @@ export async function GET(request: NextRequest) {
 
     console.log("✅ JWT 토큰 생성 완료");
 
-    // 5. JSON으로 토큰과 사용자 정보 반환 (Tauri 앱용)
+    // 5. 앱 callback URL이 커스텀 스킴이면 리다이렉트, 아니면 JSON 반환
+    const DESKTOP_CALLBACK = 'deskcal://auth/callback';
+
+    if (accessToken && refreshToken) {
+      const callbackUrl = new URL(DESKTOP_CALLBACK);
+
+      // ⚠️ 가능하면 토큰 말고 1회용 code 추천
+      callbackUrl.searchParams.set('accessToken', accessToken);
+      callbackUrl.searchParams.set('refreshToken', refreshToken);
+      callbackUrl.searchParams.set('memberId', String(member.member_id));
+      callbackUrl.searchParams.set('nickname', memberNickname);
+
+      if (member.email) {
+        callbackUrl.searchParams.set('email', member.email);
+      }
+
+      console.log('✅ 데스크톱 앱으로 리다이렉트:', callbackUrl.toString());
+
+      return NextResponse.redirect(callbackUrl.toString(), 307);
+    }
+
+    // JSON으로 토큰과 사용자 정보 반환 (레거시 호환)
     return NextResponse.json({
       accessToken,
       refreshToken,
@@ -123,12 +154,21 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error("❌ 카카오 콜백 처리 에러:", error);
-    return NextResponse.json(
-        {
-          error: "Authentication failed",
-          details: error instanceof Error ? error.message : "Unknown error"
-        },
-        { status: 500 }
+    return handleError(
+      error instanceof Error ? error.message : "Authentication failed",
+      500
     );
+  }
+}
+
+/**
+ * URL이 커스텀 스킴인지 확인 (http/https가 아닌 경우)
+ */
+function isCustomScheme(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return !["http:", "https:"].includes(parsed.protocol);
+  } catch {
+    return false;
   }
 }

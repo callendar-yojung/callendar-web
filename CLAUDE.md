@@ -222,6 +222,27 @@ AWS_S3_BUCKET=
 4. 세션에 memberId, nickname, provider 저장
 
 ### 외부 앱 인증 흐름 (데스크탑/모바일)
+
+#### 방법 1: 브라우저 기반 OAuth (권장)
+카카오가 커스텀 스킴(desktop-calendar://)을 redirect_uri로 허용하지 않으므로, 백엔드를 통한 OAuth 흐름을 사용합니다.
+
+```
+Desktop App → GET /api/auth/kakao/start?callback=desktop-calendar://auth/callback
+                              ↓
+              Response: { authUrl: "https://kauth.kakao.com/oauth/authorize?...&state=desktop-calendar://auth/callback" }
+                              ↓
+Desktop App → 브라우저에서 authUrl 열기
+                              ↓
+사용자 → 카카오 로그인 완료
+                              ↓
+카카오 → https://trabien.com/api/auth/kakao/callback?code=XXX&state=desktop-calendar://auth/callback
+                              ↓
+Backend → 토큰 교환 후 desktop-calendar://auth/callback?accessToken=...&refreshToken=... 로 리다이렉트
+                              ↓
+Desktop App → Deep link로 토큰 수신
+```
+
+#### 방법 2: SDK 기반 (카카오 SDK 사용 가능한 경우)
 1. 앱에서 카카오 SDK로 로그인하여 `access_token` 획득
 2. 서버 API에 카카오 `access_token` 전달
 3. 서버가 카카오 API로 사용자 정보 검증
@@ -365,10 +386,24 @@ export async function GET(request: NextRequest) {
   - Returns: `{ success: true }`
 
 ### External Auth (데스크탑/모바일 앱용)
+
+#### 브라우저 기반 OAuth (권장)
+- `GET /api/auth/kakao/start?callback={appCallback}` - 카카오 OAuth 시작 URL 생성
+  - Query: `callback` (required) - 앱의 딥링크 URL (예: `desktop-calendar://auth/callback`)
+  - Returns: `{ authUrl: string, redirectUri: string, state: string }`
+  - Note: `authUrl`을 브라우저에서 열어 카카오 로그인 진행
+- `GET /api/auth/kakao/callback?code={code}&state={state}` - 카카오 OAuth 콜백 처리
+  - Query: `code` - 카카오 인증 코드, `state` - 앱 callback URL (인코딩됨)
+  - Response: 커스텀 스킴이면 `{callback}?accessToken=...&refreshToken=...` 로 리다이렉트
+  - Fallback: JSON `{ accessToken, refreshToken, member: {...} }`
+
+#### SDK 기반 (카카오 SDK 사용 가능한 경우)
 - `POST /api/auth/external/kakao` - 카카오 토큰으로 로그인
   - Body: `{ access_token: string }` (카카오 SDK에서 받은 access_token)
   - Returns: `{ success: true, user: { memberId, nickname, email, provider }, accessToken, refreshToken, expiresIn }`
   - Note: 카카오 API로 토큰 검증 후 JWT 발급
+
+#### 공통
 - `POST /api/auth/external/refresh` - 토큰 갱신
   - Body: `{ refresh_token: string }`
   - Returns: `{ success: true, accessToken, refreshToken, expiresIn }`
