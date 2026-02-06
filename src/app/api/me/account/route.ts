@@ -32,12 +32,6 @@ export async function PATCH(request: NextRequest) {
     // 닉네임 업데이트
     await updateMemberNickname(user.memberId, trimmed);
 
-    // 개인 워크스페이스 이름도 변경
-    await pool.execute(
-      `UPDATE workspaces SET name = ? WHERE type = 'personal' AND owner_id = ?`,
-      [`${trimmed}의 워크스페이스`, user.memberId]
-    );
-
     return NextResponse.json({ success: true, nickname: trimmed });
   } catch (error) {
     console.error("Failed to update account:", error);
