@@ -27,7 +27,7 @@ export default function Footer() {
     ],
     [t("legal")]: [
       { name: t("terms"), href: "#" },
-      { name: t("privacy"), href: "#" },
+      { name: t("privacy"), href: "/privacy" },
       { name: t("cookies"), href: "#" },
     ],
   };

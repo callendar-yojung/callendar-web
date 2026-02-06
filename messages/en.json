@@ -1,8 +1,8 @@
 {
   "metadata": {
-    "title": "Kelindor - All-in-One Workspace for Teams",
-    "description": "Kelindor (KD) is an all-in-one productivity platform that handles team collaboration, project management, and documentation in one place. Start free today.",
-    "ogDescription": "Team collaboration, project management, and documentation in one place. Maximize productivity with Kelindor."
+    "title": "Pecal - All-in-One Workspace for Teams",
+    "description": "Pecal is an all-in-one productivity platform that handles team collaboration, project management, and documentation in one place. Start free today.",
+    "ogDescription": "Team collaboration, project management, and documentation in one place. Maximize productivity with Pecal."
   },
   "nav": {
     "features": "Features",
@@ -17,7 +17,7 @@
     "badge": "New AI features launched",
     "title1": "One workspace.",
     "title2": "Infinite possibilities.",
-    "description": "Team collaboration, project management, and documentation in one place. Maximize productivity with Kelindor.",
+    "description": "Team collaboration, project management, and documentation in one place. Maximize productivity with Pecal.",
     "cta": "Get started free",
     "demo": "View demo",
     "download": "Download App",
@@ -26,7 +26,7 @@
   },
   "download": {
     "title": "Download Desktop App",
-    "description": "Manage your work faster and more conveniently with the Kelindor desktop app. Get an optimized native app experience.",
+    "description": "Manage your work faster and more conveniently with the Pecal desktop app. Get an optimized native app experience.",
     "login": "Log in",
     "downloadButton": "Download",
     "comingSoon": "Coming soon",
@@ -75,7 +75,7 @@
       },
       "integrations": {
         "title": "Endless Integrations",
-        "description": "Connect with 200+ tools like Slack, GitHub, and Figma. Use Kelindor while maintaining your existing workflow."
+        "description": "Connect with 200+ tools like Slack, GitHub, and Figma. Use Pecal while maintaining your existing workflow."
       }
     }
   },
@@ -136,7 +136,7 @@
   },
   "cta": {
     "title": "Get started today",
-    "description": "The first step to better team collaboration. Transform how you work with Kelindor.",
+    "description": "The first step to better team collaboration. Transform how you work with Pecal.",
     "getStarted": "Get started free",
     "contact": "Contact sales"
   },
@@ -161,7 +161,130 @@
     "terms": "Terms of Service",
     "privacy": "Privacy Policy",
     "cookies": "Cookie Policy",
-    "copyright": "© {year} Kelindor. All rights reserved."
+    "copyright": "© {year} Pecal. All rights reserved."
+  },
+  "privacyPolicy": {
+    "title": "Privacy Policy",
+    "lastUpdated": "Last Updated: February 6, 2026",
+    "intro": "Pecal (the 'Company') values your privacy and complies with relevant laws including the Personal Information Protection Act. This Privacy Policy explains what personal information we collect, how we use it, how long we retain it, and how we dispose of it when you use our services.",
+    "backToHome": "Back to Home",
+
+    "section1": {
+      "title": "1. Personal Information We Collect",
+      "content": "We collect the following personal information to provide our services.",
+      "required": {
+        "title": "a. Required Information",
+        "items": [
+          "Email address",
+          "Nickname (username)",
+          "Social login information (Kakao account information)",
+          "Service usage records, IP address, cookies, access logs"
+        ]
+      },
+      "optional": {
+        "title": "b. Optional Information",
+        "items": [
+          "Profile image",
+          "Team information (team name, description)",
+          "Workspace information",
+          "Task and calendar information"
+        ]
+      }
+    },
+
+    "section2": {
+      "title": "2. Purpose of Collection and Use",
+      "content": "We use the collected personal information for the following purposes.",
+      "purposes": [
+        "Membership registration and management: Member identification, identity verification, registration confirmation",
+        "Service provision: Task management, team collaboration, project management features",
+        "Service improvement: New service development, personalized services, statistical analysis",
+        "Customer support: Inquiry handling, notice delivery, complaint resolution",
+        "Marketing and advertising: Event information and participation opportunities (only with consent)"
+      ]
+    },
+
+    "section3": {
+      "title": "3. Retention and Use Period",
+      "content": "In principle, we destroy personal information without delay after the purpose of collection and use has been achieved.",
+      "retention": [
+        "Member information: Until membership withdrawal (except when required by law)",
+        "Service usage records: 3 years (Protection of Communications Secrets Act)",
+        "Consumer complaint or dispute resolution records: 3 years (E-Commerce Act)",
+        "Payment and supply records: 5 years (E-Commerce Act)"
+      ]
+    },
+
+    "section4": {
+      "title": "4. Provision to Third Parties",
+      "content": "We do not provide personal information to third parties in principle. However, exceptions apply in the following cases.",
+      "exceptions": [
+        "When users have given prior consent",
+        "When required by law or requested by investigative agencies following legal procedures",
+        "When necessary for service provision (e.g., providing to payment gateway for payment processing)"
+      ]
+    },
+
+    "section5": {
+      "title": "5. Outsourcing of Personal Information Processing",
+      "content": "We outsource personal information processing tasks to external companies as follows to improve our services.",
+      "note": "When entering into outsourcing contracts, we stipulate and supervise necessary matters to ensure that contractors handle personal information safely in accordance with the Personal Information Protection Act and related laws."
+    },
+
+    "section6": {
+      "title": "6. Rights of Users and Legal Representatives",
+      "content": "Users may exercise the following rights at any time.",
+      "rights": [
+        "Request to view personal information",
+        "Request to correct personal information",
+        "Request to delete personal information",
+        "Request to stop processing personal information"
+      ],
+      "note": "Rights can be exercised through the settings page or customer support, and we will take action without delay."
+    },
+
+    "section7": {
+      "title": "7. Installation and Operation of Automatic Collection Devices",
+      "content": "We operate 'cookies' that periodically store and retrieve user information.",
+      "cookie": {
+        "what": "A cookie is a small amount of information that a website sends to a user's browser.",
+        "purpose": "Cookies are used for user convenience and to provide personalized services.",
+        "control": "Users have the choice to accept cookies and can set cookie options through web browser settings to allow, block, or warn about cookies."
+      }
+    },
+
+    "section8": {
+      "title": "8. Security Measures",
+      "content": "In accordance with Article 29 of the Personal Information Protection Act, we take the following technical and administrative measures to ensure security.",
+      "measures": [
+        "Personal information encryption: Passwords are encrypted for storage and management",
+        "Technical measures against hacking: Installation of firewalls, antivirus programs, etc.",
+        "Minimization and training of personal information handlers: Designation of personal information managers and regular training",
+        "Access control: Granting, changing, and revoking access rights to personal information processing systems"
+      ]
+    },
+
+    "section9": {
+      "title": "9. Privacy Officer",
+      "content": "We have designated a Privacy Officer who is responsible for overall personal information processing and handles complaints and remedies related to personal information processing.",
+      "contact": {
+        "title": "Privacy Officer",
+        "name": "Department: Pecal Operations Team",
+        "email": "Email: privacy@pecal.com",
+        "note": "For other reports or consultations regarding personal information infringement, please contact the following organizations.",
+        "agencies": [
+          "Privacy Infringement Report Center (privacy.kisa.or.kr / 118)",
+          "Personal Information Dispute Mediation Committee (www.kopico.go.kr / 1833-6972)",
+          "Supreme Prosecutors' Office Cyber Investigation Department (www.spo.go.kr / 1301)",
+          "National Police Agency Cyber Safety Bureau (cyberbureau.police.go.kr / 182)"
+        ]
+      }
+    },
+
+    "section10": {
+      "title": "10. Changes to Privacy Policy",
+      "content": "This Privacy Policy is effective from the date of implementation, and if there are additions, deletions, or corrections due to changes in laws and policies, we will announce them through notices at least 7 days before the changes take effect."
+    }
   },
   "login": {
     "title": "Log in",
