@@ -20,8 +20,31 @@
     "description": "팀 협업, 프로젝트 관리, 문서 작성을 하나의 공간에서. Kelindor로 업무 효율을 극대화하세요.",
     "cta": "무료로 시작하기",
     "demo": "데모 보기",
+    "download": "앱 다운로드",
     "noCreditCard": "신용카드 필요 없음 · 무료 플랜 영구 제공",
     "preview": "프로젝트 대시보드 미리보기"
+  },
+  "download": {
+    "title": "데스크톱 앱 다운로드",
+    "description": "Kelindor 데스크톱 앱으로 더 빠르고 편리하게 업무를 관리하세요. 네이티브 앱으로 최적화된 경험을 제공합니다.",
+    "login": "로그인",
+    "downloadButton": "다운로드",
+    "comingSoon": "준비 중입니다",
+    "error": "릴리즈 정보를 불러오는데 실패했습니다",
+    "platforms": {
+      "windows": "Windows",
+      "windowsDesc": "Windows 10 이상",
+      "macosArm": "macOS (Apple Silicon)",
+      "macosArmDesc": "M1, M2, M3 칩 Mac용",
+      "macosIntel": "macOS (Intel)",
+      "macosIntelDesc": "Intel 프로세서 Mac용",
+      "linux": "Linux",
+      "linuxDesc": "Ubuntu, Debian 등"
+    },
+    "requirements": {
+      "title": "시스템 요구 사항",
+      "orLater": "이상"
+    }
   },
   "trustedBy": {
     "title": "10,000개 이상의 팀이 Kelindor를 신뢰합니다"

@@ -20,8 +20,31 @@
     "description": "Team collaboration, project management, and documentation in one place. Maximize productivity with Kelindor.",
     "cta": "Get started free",
     "demo": "View demo",
+    "download": "Download App",
     "noCreditCard": "No credit card required · Free plan forever",
     "preview": "Project dashboard preview"
+  },
+  "download": {
+    "title": "Download Desktop App",
+    "description": "Manage your work faster and more conveniently with the Kelindor desktop app. Get an optimized native app experience.",
+    "login": "Log in",
+    "downloadButton": "Download",
+    "comingSoon": "Coming soon",
+    "error": "Failed to load release information",
+    "platforms": {
+      "windows": "Windows",
+      "windowsDesc": "Windows 10 or later",
+      "macosArm": "macOS (Apple Silicon)",
+      "macosArmDesc": "For M1, M2, M3 chip Macs",
+      "macosIntel": "macOS (Intel)",
+      "macosIntelDesc": "For Intel processor Macs",
+      "linux": "Linux",
+      "linuxDesc": "Ubuntu, Debian, etc."
+    },
+    "requirements": {
+      "title": "System Requirements",
+      "orLater": "or later"
+    }
   },
   "trustedBy": {
     "title": "Trusted by over 10,000 teams"

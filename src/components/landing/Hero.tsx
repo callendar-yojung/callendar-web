@@ -42,12 +42,11 @@ export default function Hero() {
               {t("cta")}
             </Link>
             <Link
-              href="#demo"
+              href="/download"
               className="group flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-card px-8 py-4 text-base font-medium text-foreground transition-all hover:bg-hover hover:shadow-lg sm:w-auto"
             >
-              {t("demo")}
               <svg
-                className="h-4 w-4 transition-transform group-hover:translate-x-1"
+                className="h-4 w-4"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -56,9 +55,10 @@ export default function Hero() {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M9 5l7 7-7 7"
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                 />
               </svg>
+              {t("download")}
             </Link>
           </div>
 
