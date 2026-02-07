@@ -186,6 +186,10 @@ AUTH_SECRET=           # openssl rand -base64 32
 AUTH_KAKAO_ID=         # 카카오 REST API 키
 AUTH_KAKAO_SECRET=     # 카카오 Client Secret
 
+# Google OAuth
+AUTH_GOOGLE_ID=        # 구글 Client ID
+AUTH_GOOGLE_SECRET=    # 구글 Client Secret
+
 # MySQL Database
 DB_HOST=
 DB_PORT=3306
@@ -310,6 +314,7 @@ export async function GET(request: NextRequest) {
 
 ### 완료
 - [x] 카카오 로그인
+- [x] 구글 로그인
 - [x] 다국어 지원 (한/영)
 - [x] SEO 메타데이터
 - [x] 랜딩 페이지
@@ -323,6 +328,7 @@ export async function GET(request: NextRequest) {
 - [x] 워크스페이스 스위처 (개인/팀 그룹화)
 - [x] JWT 인증 (외부 앱용) + NextAuth 세션 (웹용)
 - [x] 외부 카카오 로그인 API (데스크탑/모바일)
+- [x] 외부 구글 로그인 API (데스크탑/모바일)
 
 ### TODO
 - [ ] 태스크 상태 변경 (TODO, IN_PROGRESS, DONE)
@@ -331,7 +337,7 @@ export async function GET(request: NextRequest) {
 - [ ] 프로필 설정
 - [ ] 알림 기능
 - [ ] 캘린더 상세 페이지
-- [ ] 구글/네이버 로그인 추가
+- [ ] 네이버 로그인 추가
 
 ## API 엔드포인트
 
@@ -388,8 +394,10 @@ export async function GET(request: NextRequest) {
 ### External Auth (데스크탑/모바일 앱용)
 
 #### 브라우저 기반 OAuth (권장)
+
+**카카오**
 - `GET /api/auth/kakao/start?callback={appCallback}` - 카카오 OAuth 시작 URL 생성
-  - Query: `callback` (required) - 앱의 딥링크 URL (예: `desktop-calendar://auth/callback`)
+  - Query: `callback` (required) - 앱의 딥링크 URL (예: `deskcal://auth/callback`)
   - Returns: `{ authUrl: string, redirectUri: string, state: string }`
   - Note: `authUrl`을 브라우저에서 열어 카카오 로그인 진행
 - `GET /api/auth/kakao/callback?code={code}&state={state}` - 카카오 OAuth 콜백 처리
@@ -397,11 +405,29 @@ export async function GET(request: NextRequest) {
   - Response: 커스텀 스킴이면 `{callback}?accessToken=...&refreshToken=...` 로 리다이렉트
   - Fallback: JSON `{ accessToken, refreshToken, member: {...} }`
 
-#### SDK 기반 (카카오 SDK 사용 가능한 경우)
+**구글**
+- `GET /api/auth/google/start?callback={appCallback}` - 구글 OAuth 시작 URL 생성
+  - Query: `callback` (required) - 앱의 딥링크 URL (예: `deskcal://auth/callback`)
+  - Returns: `{ authUrl: string, redirectUri: string, state: string }`
+  - Note: `authUrl`을 브라우저에서 열어 구글 로그인 진행
+- `GET /api/auth/google/callback?code={code}&state={state}` - 구글 OAuth 콜백 처리
+  - Query: `code` - 구글 인증 코드, `state` - 앱 callback URL (인코딩됨)
+  - Response: 커스텀 스킴이면 `{callback}?accessToken=...&refreshToken=...` 로 리다이렉트
+  - Fallback: JSON `{ accessToken, refreshToken, member: {...} }`
+
+#### SDK 기반
+
+**카카오 (카카오 SDK 사용 가능한 경우)**
 - `POST /api/auth/external/kakao` - 카카오 토큰으로 로그인
   - Body: `{ access_token: string }` (카카오 SDK에서 받은 access_token)
   - Returns: `{ success: true, user: { memberId, nickname, email, provider }, accessToken, refreshToken, expiresIn }`
   - Note: 카카오 API로 토큰 검증 후 JWT 발급
+
+**구글 (구글 SDK 사용 가능한 경우)**
+- `POST /api/auth/external/google` - 구글 토큰으로 로그인
+  - Body: `{ access_token: string }` (구글 SDK에서 받은 access_token)
+  - Returns: `{ success: true, user: { memberId, nickname, email, provider }, accessToken, refreshToken, expiresIn }`
+  - Note: 구글 API로 토큰 검증 후 JWT 발급
 
 #### 공통
 - `POST /api/auth/external/refresh` - 토큰 갱신

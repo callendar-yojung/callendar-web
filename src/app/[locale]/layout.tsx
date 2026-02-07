@@ -37,13 +37,13 @@ export async function generateMetadata({
   const messages = (await import(`../../../messages/${locale}.json`)).default;
   const t = messages.metadata;
 
-  const baseUrl = "https://kelindor.com";
+  const baseUrl = "https://trabien.com";
 
   return {
     metadataBase: new URL(baseUrl),
     title: {
       default: t.title,
-      template: `%s | Kelindor`,
+      template: `%s | Pecal`,
     },
     description: t.description,
     keywords:
@@ -54,7 +54,7 @@ export async function generateMetadata({
             "팀 워크스페이스",
             "문서 관리",
             "생산성",
-            "Kelindor",
+            "Pecal",
             "KD",
           ]
         : [
@@ -63,11 +63,11 @@ export async function generateMetadata({
             "team workspace",
             "document management",
             "productivity",
-            "Kelindor",
+            "Pecal",
             "KD",
           ],
-    authors: [{ name: "Kelindor Team" }],
-    creator: "Kelindor",
+    authors: [{ name: "Pecal Team" }],
+    creator: "Pecal",
     alternates: {
       canonical: `${baseUrl}/${locale}`,
       languages: {
@@ -80,7 +80,7 @@ export async function generateMetadata({
       type: "website",
       locale: locale === "ko" ? "ko_KR" : "en_US",
       url: `${baseUrl}/${locale}`,
-      siteName: "Kelindor",
+      siteName: "Pecal",
       title: t.title,
       description: t.ogDescription,
       images: [

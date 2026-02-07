@@ -14,7 +14,7 @@
     "dashboard": "Dashboard"
   },
   "hero": {
-    "badge": "New AI features launched",
+    "badge": "desktop app available now",
     "title1": "One workspace.",
     "title2": "Infinite possibilities.",
     "description": "Team collaboration, project management, and documentation in one place. Maximize productivity with Pecal.",
@@ -289,7 +289,8 @@
   "login": {
     "title": "Log in",
     "description": "Sign in easily with your social account",
-    "kakao": "Continue with Kakao"
+    "kakao": "Continue with Kakao",
+    "google": "Continue with Google"
   },
   "home": {
     "welcome": "Welcome!",

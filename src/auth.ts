@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import Kakao from "next-auth/providers/kakao";
+import Google from "next-auth/providers/google";
 import { findOrCreateMember } from "./lib/member";
 
 declare module "next-auth" {
@@ -20,6 +21,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     Kakao({
       clientId: process.env.AUTH_KAKAO_ID!,
       clientSecret: process.env.AUTH_KAKAO_SECRET!,
+    }),
+    Google({
+      clientId: process.env.AUTH_GOOGLE_ID!,
+      clientSecret: process.env.AUTH_GOOGLE_SECRET!,
     }),
   ],
   callbacks: {
