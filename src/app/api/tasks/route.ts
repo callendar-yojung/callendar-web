@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, start_time, end_time, content, status, workspace_id } = body;
+    const { title, start_time, end_time, content, status, workspace_id, color, tag_ids } = body;
 
     // 유효성 검사
     if (!title || !start_time || !end_time || !workspace_id) {
@@ -106,6 +106,8 @@ export async function POST(request: NextRequest) {
       end_time,
       content,
       status: status || "TODO",
+      color: color || "#3B82F6",
+      tag_ids: tag_ids || [],
       member_id: user.memberId,
       workspace_id: Number(workspace_id),
     });
@@ -132,7 +134,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { task_id, title, start_time, end_time, content, status } = body;
+    const { task_id, title, start_time, end_time, content, status, color, tag_ids } = body;
 
     if (!task_id) {
       return NextResponse.json(
@@ -143,7 +145,7 @@ export async function PATCH(request: NextRequest) {
 
     await updateTask(
       Number(task_id),
-      { title, start_time, end_time, content, status },
+      { title, start_time, end_time, content, status, color, tag_ids },
       user.memberId
     );
 

@@ -442,3 +442,181 @@ export async function GET(request: NextRequest) {
 - `GET /api/calendar?workspace_id={id}&year={year}&month={month}` - 월별 태스크 개수 조회
   - Query: `workspace_id`, `year`, `month` (required)
   - Returns: `{ taskCounts: { [date: string]: number } }`
+
+### Plans (플랜 관리)
+- `GET /api/plans` - 모든 플랜 조회
+  - Returns: `Plan[]`
+- `GET /api/plans?id={planId}` - 특정 플랜 조회
+  - Query: `id` (required)
+  - Returns: `Plan`
+- `POST /api/plans` - 새 플랜 생성 (관리자)
+  - Body: `{ name: string, price: number, max_members: number, max_storage_mb: number }`
+  - Returns: `Plan`
+- `PUT /api/plans` - 플랜 수정 (관리자)
+  - Body: `{ id: number, name: string, price: number, max_members: number, max_storage_mb: number }`
+  - Returns: `Plan`
+- `DELETE /api/plans?id={planId}` - 플랜 삭제 (관리자)
+  - Query: `id` (required)
+  - Returns: `{ message: string }`
+
+### Subscriptions (구독 관리)
+- `GET /api/subscriptions?team_id={teamId}` - 팀의 모든 구독 내역 조회
+  - Query: `team_id` (required)
+  - Returns: `Subscription[]`
+- `GET /api/subscriptions?team_id={teamId}&active=true` - 팀의 활성 구독 조회
+  - Query: `team_id` (required), `active=true`
+  - Returns: `Subscription | null`
+- `GET /api/subscriptions?id={subscriptionId}` - 특정 구독 조회
+  - Query: `id` (required)
+  - Returns: `Subscription`
+- `POST /api/subscriptions` - 새 구독 생성 (기존 활성 구독은 자동 만료)
+  - Body: `{ team_id: number, plan_id: number }`
+  - Returns: `Subscription`
+- `PUT /api/subscriptions` - 구독 상태 변경
+  - Body: `{ id: number, status: "ACTIVE" | "CANCELED" | "EXPIRED" }` 또는 `{ id: number, action: "cancel" }`
+  - Returns: `Subscription`
+- `DELETE /api/subscriptions?id={subscriptionId}` - 구독 삭제
+  - Query: `id` (required)
+  - Returns: `{ message: string }`
+
+### Files (파일 관리)
+- `GET /api/files?team_id={teamId}` - 팀의 모든 파일 조회
+  - Query: `team_id` (required)
+  - Returns: `File[]`
+- `GET /api/files?team_id={teamId}&total_size=true` - 팀의 총 파일 크기 조회
+  - Query: `team_id` (required), `total_size=true`
+  - Returns: `{ team_id: number, total_size_mb: number }`
+- `GET /api/files?id={fileId}` - 특정 파일 조회
+  - Query: `id` (required)
+  - Returns: `File`
+- `POST /api/files` - 새 파일 생성 (저장소 용량 체크 후 생성)
+  - Body: `{ team_id: number, file_name: string, file_size_mb: number }`
+  - Returns: `File`
+  - Error (403): 저장소 용량 초과 시 `{ error, current, limit, required }`
+- `PUT /api/files` - 파일 이름 수정
+  - Body: `{ id: number, file_name: string }`
+  - Returns: `File`
+- `DELETE /api/files?id={fileId}` - 파일 삭제 (저장소 사용량 자동 차감)
+  - Query: `id` (required)
+  - Returns: `{ message: string }`
+
+### Storage (저장소 사용량 관리)
+- `GET /api/storage?team_id={teamId}` - 팀의 저장소 사용량 조회
+  - Query: `team_id` (required)
+  - Returns: `TeamStorageUsage`
+- `GET /api/storage?team_id={teamId}&check_limit={additionalMb}` - 용량 추가 가능 여부 확인
+  - Query: `team_id` (required), `check_limit` (required)
+  - Returns: `{ allowed: boolean, current: number, limit: number }`
+- `POST /api/storage` - 저장소 사용량 초기화
+  - Body: `{ team_id: number }`
+  - Returns: `TeamStorageUsage`
+- `POST /api/storage` - 저장소 사용량 재계산 (실제 파일 크기 합계로 동기화)
+  - Body: `{ team_id: number, action: "recalculate" }`
+  - Returns: `{ ...TeamStorageUsage, recalculated_size: number }`
+- `PUT /api/storage` - 저장소 사용량 수정
+  - Body: `{ team_id: number, used_storage_mb: number }`
+  - Returns: `TeamStorageUsage`
+- `DELETE /api/storage?team_id={teamId}` - 저장소 사용량 삭제
+  - Query: `team_id` (required)
+  - Returns: `{ message: string }`
+
+## 데이터 모델
+
+### Plan
+```typescript
+interface Plan {
+  id: number;
+  name: string;
+  price: number;
+  max_members: number;
+  max_storage_mb: number;
+  created_at: Date;
+}
+```
+
+### Subscription
+```typescript
+interface Subscription {
+  id: number;
+  team_id: number;
+  plan_id: number;
+  status: "ACTIVE" | "CANCELED" | "EXPIRED";
+  started_at: Date;
+  ended_at: Date | null;
+  plan_name?: string;
+  plan_price?: number;
+}
+```
+
+### File
+```typescript
+interface File {
+  id: number;
+  team_id: number;
+  file_name: string;
+  file_size_mb: number;
+  created_at: Date;
+}
+```
+
+### TeamStorageUsage
+```typescript
+interface TeamStorageUsage {
+  team_id: number;
+  used_storage_mb: number;
+  updated_at: Date;
+}
+```
+
+## 저장소 관리 시스템
+
+### 동작 방식
+1. **파일 생성 시**: 
+   - 저장소 용량 체크 (`checkStorageLimit`)
+   - 용량 초과 시 403 에러 반환
+   - 파일 생성과 동시에 `team_storage_usage` 증가 (트랜잭션)
+
+2. **파일 삭제 시**: 
+   - 파일 삭제와 동시에 `team_storage_usage` 차감 (트랜잭션)
+
+3. **저장소 재계산**:
+   - 실제 파일 크기 합계를 계산하여 동기화
+   - 데이터 불일치 시 사용
+
+### 구독 플랜별 용량 제한
+- 플랜의 `max_storage_mb` 필드로 제한
+- 활성 구독이 없으면 기본 1GB (1000MB)
+
+## 라이브러리 함수
+
+### Plan 관련 (`src/lib/plan.ts`)
+- `getAllPlans()` - 모든 플랜 조회
+- `getPlanById(planId)` - 플랜 조회
+- `createPlan(name, price, maxMembers, maxStorageMb)` - 플랜 생성
+- `updatePlan(planId, name, price, maxMembers, maxStorageMb)` - 플랜 수정
+- `deletePlan(planId)` - 플랜 삭제
+
+### Subscription 관련 (`src/lib/subscription.ts`)
+- `getSubscriptionsByTeamId(teamId)` - 팀의 모든 구독 조회
+- `getActiveSubscriptionByTeamId(teamId)` - 팀의 활성 구독 조회
+- `getSubscriptionById(subscriptionId)` - 구독 조회
+- `createSubscription(teamId, planId)` - 새 구독 생성 (기존 활성 구독 자동 만료)
+- `updateSubscriptionStatus(subscriptionId, status)` - 구독 상태 변경
+- `cancelSubscription(subscriptionId)` - 구독 취소
+- `deleteSubscription(subscriptionId)` - 구독 삭제
+
+### File 관련 (`src/lib/file.ts`)
+- `getFilesByTeamId(teamId)` - 팀의 모든 파일 조회
+- `getFileById(fileId)` - 파일 조회
+- `createFile(teamId, fileName, fileSizeMb)` - 파일 생성 (저장소 사용량 자동 증가)
+- `updateFile(fileId, fileName)` - 파일 이름 수정
+- `deleteFile(fileId)` - 파일 삭제 (저장소 사용량 자동 차감)
+- `getTotalFileSizeByTeamId(teamId)` - 팀의 총 파일 크기 조회
+
+### Storage 관련 (`src/lib/storage.ts`)
+- `getStorageUsageByTeamId(teamId)` - 저장소 사용량 조회
+- `initializeStorageUsage(teamId)` - 저장소 사용량 초기화
+- `updateStorageUsage(teamId, usedStorageMb)` - 저장소 사용량 수정
+- `recalculateStorageUsage(teamId)` - 저장소 사용량 재계산 (실제 파일 크기 합계)
+- `checkStorageLimit(teamId, additionalMb)` - 용량 추가 가능 여부 확인
+- `deleteStorageUsage(teamId)` - 저장소 사용량 삭제

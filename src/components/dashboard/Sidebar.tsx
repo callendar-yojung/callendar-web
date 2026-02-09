@@ -174,7 +174,7 @@ export default function Sidebar() {
 				{/* Workspace Switcher - Fixed at top */}
 				<div className="flex-shrink-0 p-4">
 					<WorkspaceSwitcher />
-				</div>해
+				</div>
 
 				{/* Resizable content area */}
 				<div ref={contentRef} className="flex flex-1 flex-col overflow-hidden">

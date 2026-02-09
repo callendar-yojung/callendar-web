@@ -8,6 +8,11 @@ const intlMiddleware = createMiddleware(routing);
 export default function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // 관리자 페이지는 i18n 미들웨어 제외
+  if (pathname.startsWith("/admin")) {
+    return NextResponse.next();
+  }
+
   // API 라우트에 CORS 헤더 추가
   if (pathname.startsWith("/api")) {
     // 환경별 Origin 설정

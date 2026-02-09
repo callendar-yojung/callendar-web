@@ -5,12 +5,23 @@ import { useTranslations, useLocale } from "next-intl";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import TaskModal, { type TaskFormData } from "./TaskModal";
 
+interface Tag {
+  tag_id: number;
+  name: string;
+  color: string;
+  owner_type: "team" | "personal";
+  owner_id: number;
+}
+
 interface Task {
   id: number;
+  title?: string;
   start_time: string;
   end_time?: string;
   content?: string;
   workspace_id: number;
+  color?: string;
+  tags?: Tag[];
 }
 
 export default function CalendarDemo() {
@@ -363,6 +374,8 @@ export default function CalendarDemo() {
           end_time: new Date(selectedDate.getTime() + 60 * 60 * 1000).toISOString(),
           content: ''
         } : undefined}
+        workspaceType={currentWorkspace?.type}
+        ownerId={currentWorkspace?.owner_id}
       />
     </div>
   );

@@ -12,11 +12,13 @@ interface Task {
   end_time: string;
   content: string | null;
   status: "TODO" | "IN_PROGRESS" | "DONE";
+  color?: string;
   created_at: string;
   updated_at: string;
   created_by: number;
   updated_by: number;
   workspace_id: number;
+  tags?: Array<{ tag_id: number; name: string; color: string }>;
 }
 
 type ViewMode = "timeline" | "list";
@@ -134,6 +136,8 @@ export default function TaskList() {
             start_time: taskData.start_time,
             end_time: taskData.end_time,
             content: taskData.content || null,
+            color: taskData.color,
+            tag_ids: taskData.tag_ids,
           }),
         });
         if (response.ok) {
@@ -443,8 +447,13 @@ export default function TaskList() {
           title: selectedTask.title,
           start_time: selectedTask.start_time,
           end_time: selectedTask.end_time,
-          content: selectedTask.content || '' // null을 빈 문자열로 변환
+          content: selectedTask.content || '',
+          status: selectedTask.status,
+          color: selectedTask.color || '#3B82F6',
+          tag_ids: selectedTask.tags?.map(tag => tag.tag_id) || []
         } : null}
+        workspaceType={currentWorkspace?.type}
+        ownerId={currentWorkspace?.owner_id}
       />
     </>
   );

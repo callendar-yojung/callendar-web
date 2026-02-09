@@ -8,11 +8,13 @@ export interface Task {
   end_time: Date;
   content: string | null;
   status: "TODO" | "IN_PROGRESS" | "DONE";
+  color?: string;
   created_at: Date;
   updated_at: Date;
   created_by: number;
   updated_by: number;
   workspace_id: number;
+  tags?: Array<{ tag_id: number; name: string; color: string }>;
 }
 
 export interface CreateTaskData {
@@ -21,30 +23,57 @@ export interface CreateTaskData {
   end_time: string;
   content?: string;
   status?: "TODO" | "IN_PROGRESS" | "DONE";
+  color?: string;
   member_id: number;
   workspace_id: number;
+  tag_ids?: number[];
 }
 
 /**
  * 새 태스크 생성 (워크스페이스 기반)
  */
 export async function createTask(data: CreateTaskData): Promise<number> {
-  const [result] = await pool.query<ResultSetHeader>(
-    `INSERT INTO tasks (title, start_time, end_time, content, status, created_at, updated_at, created_by, updated_by, workspace_id)
-     VALUES (?, ?, ?, ?, ?, NOW(), NOW(), ?, ?, ?)`,
-    [
-      data.title,
-      data.start_time,
-      data.end_time,
-      data.content || null,
-      data.status || "TODO",
-      data.member_id,
-      data.member_id,
-      data.workspace_id
-    ]
-  );
+  const connection = await pool.getConnection();
 
-  return result.insertId;
+  try {
+    await connection.beginTransaction();
+
+    const [result] = await connection.query<ResultSetHeader>(
+      `INSERT INTO tasks (title, start_time, end_time, content, status, color, created_at, updated_at, created_by, updated_by, workspace_id)
+       VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW(), ?, ?, ?)`,
+      [
+        data.title,
+        data.start_time,
+        data.end_time,
+        data.content || null,
+        data.status || "TODO",
+        data.color || "#3B82F6",
+        data.member_id,
+        data.member_id,
+        data.workspace_id
+      ]
+    );
+
+    const taskId = result.insertId;
+
+    // 태그 추가
+    if (data.tag_ids && data.tag_ids.length > 0) {
+      const now = new Date();
+      const tagValues = data.tag_ids.map(tagId => [taskId, tagId, now]);
+      await connection.query(
+        `INSERT INTO task_tags (task_id, tag_id, created_at) VALUES ?`,
+        [tagValues]
+      );
+    }
+
+    await connection.commit();
+    return taskId;
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
 }
 
 /**
@@ -93,16 +122,16 @@ export async function getTasksByWorkspaceIdPaginated(
     ? (options.sort_by as SortColumn)
     : "start_time";
 
-  const conditions: string[] = ["workspace_id = ?"];
+  const conditions: string[] = ["t.workspace_id = ?"];
   const params: any[] = [workspaceId];
 
   if (options.status && ["TODO", "IN_PROGRESS", "DONE"].includes(options.status)) {
-    conditions.push("status = ?");
+    conditions.push("t.status = ?");
     params.push(options.status);
   }
 
   if (options.search) {
-    conditions.push("(title LIKE ? OR content LIKE ?)");
+    conditions.push("(t.title LIKE ? OR t.content LIKE ?)");
     const searchTerm = `%${options.search}%`;
     params.push(searchTerm, searchTerm);
   }
@@ -111,19 +140,63 @@ export async function getTasksByWorkspaceIdPaginated(
 
   // 전체 개수 조회
   const [countRows] = await pool.query<RowDataPacket[]>(
-    `SELECT COUNT(*) as total FROM tasks WHERE ${whereClause}`,
+    `SELECT COUNT(DISTINCT t.id) as total FROM tasks t WHERE ${whereClause}`,
     params
   );
   const total = countRows[0].total;
 
-  // 데이터 조회
+  // 데이터 조회 (태그 포함)
   const [rows] = await pool.query<RowDataPacket[]>(
-    `SELECT * FROM tasks WHERE ${whereClause} ORDER BY ${sortBy} ${sortOrder} LIMIT ? OFFSET ?`,
+    `SELECT 
+      t.*,
+      tg.tag_id,
+      tags.name as tag_name,
+      tags.color as tag_color
+     FROM tasks t
+     LEFT JOIN task_tags tg ON t.id = tg.task_id
+     LEFT JOIN tags ON tg.tag_id = tags.tag_id
+     WHERE ${whereClause} 
+     ORDER BY t.${sortBy} ${sortOrder}
+     LIMIT ? OFFSET ?`,
     [...params, limit, offset]
   );
 
+  // 태스크별로 그룹화하여 태그 배열 생성
+  const tasksMap = new Map<number, Task>();
+
+  rows.forEach((row: any) => {
+    if (!tasksMap.has(row.id)) {
+      tasksMap.set(row.id, {
+        id: row.id,
+        title: row.title,
+        start_time: row.start_time,
+        end_time: row.end_time,
+        content: row.content,
+        status: row.status,
+        color: row.color,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+        created_by: row.created_by,
+        updated_by: row.updated_by,
+        workspace_id: row.workspace_id,
+        tags: []
+      });
+    }
+
+    // 태그가 있으면 추가
+    if (row.tag_id) {
+      tasksMap.get(row.id)!.tags!.push({
+        tag_id: row.tag_id,
+        name: row.tag_name,
+        color: row.tag_color
+      });
+    }
+  });
+
+  const tasks = Array.from(tasksMap.values());
+
   return {
-    tasks: rows as Task[],
+    tasks,
     total,
     page,
     limit,
@@ -142,43 +215,78 @@ export async function updateTask(
     end_time?: string;
     content?: string;
     status?: "TODO" | "IN_PROGRESS" | "DONE";
+    color?: string;
+    tag_ids?: number[];
   },
   memberId: number
 ): Promise<void> {
-  const updates: string[] = [];
-  const values: any[] = [];
+  const connection = await pool.getConnection();
 
-  if (data.title !== undefined) {
-    updates.push('title = ?');
-    values.push(data.title);
-  }
-  if (data.start_time) {
-    updates.push('start_time = ?');
-    values.push(data.start_time);
-  }
-  if (data.end_time) {
-    updates.push('end_time = ?');
-    values.push(data.end_time);
-  }
-  if (data.content !== undefined) {
-    updates.push('content = ?');
-    values.push(data.content);
-  }
-  if (data.status) {
-    updates.push('status = ?');
-    values.push(data.status);
-  }
+  try {
+    await connection.beginTransaction();
 
-  if (updates.length === 0) return;
+    const updates: string[] = [];
+    const values: any[] = [];
 
-  updates.push('updated_at = NOW()');
-  updates.push('updated_by = ?');
-  values.push(memberId, taskId);
+    if (data.title !== undefined) {
+      updates.push('title = ?');
+      values.push(data.title);
+    }
+    if (data.start_time) {
+      updates.push('start_time = ?');
+      values.push(data.start_time);
+    }
+    if (data.end_time) {
+      updates.push('end_time = ?');
+      values.push(data.end_time);
+    }
+    if (data.content !== undefined) {
+      updates.push('content = ?');
+      values.push(data.content);
+    }
+    if (data.status) {
+      updates.push('status = ?');
+      values.push(data.status);
+    }
+    if (data.color !== undefined) {
+      updates.push('color = ?');
+      values.push(data.color);
+    }
 
-  await pool.query(
-    `UPDATE tasks SET ${updates.join(', ')} WHERE id = ?`,
-    values
-  );
+    if (updates.length > 0) {
+      updates.push('updated_at = NOW()');
+      updates.push('updated_by = ?');
+      values.push(memberId, taskId);
+
+      await connection.query(
+        `UPDATE tasks SET ${updates.join(', ')} WHERE id = ?`,
+        values
+      );
+    }
+
+    // 태그 업데이트
+    if (data.tag_ids !== undefined) {
+      // 기존 태그 삭제
+      await connection.query('DELETE FROM task_tags WHERE task_id = ?', [taskId]);
+
+      // 새 태그 추가
+      if (data.tag_ids.length > 0) {
+        const now = new Date();
+        const tagValues = data.tag_ids.map(tagId => [taskId, tagId, now]);
+        await connection.query(
+          `INSERT INTO task_tags (task_id, tag_id, created_at) VALUES ?`,
+          [tagValues]
+        );
+      }
+    }
+
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
 }
 
 /**
@@ -239,13 +347,53 @@ export async function getTasksByDate(
   date: string
 ): Promise<Task[]> {
   const [rows] = await pool.query<RowDataPacket[]>(
-    `SELECT * FROM tasks
-     WHERE workspace_id = ?
-       AND DATE(start_time) = DATE(?)
-     ORDER BY start_time ASC`,
+    `SELECT 
+      t.*,
+      tg.tag_id,
+      tags.name as tag_name,
+      tags.color as tag_color
+     FROM tasks t
+     LEFT JOIN task_tags tg ON t.id = tg.task_id
+     LEFT JOIN tags ON tg.tag_id = tags.tag_id
+     WHERE t.workspace_id = ?
+       AND DATE(t.start_time) = DATE(?)
+     ORDER BY t.start_time ASC`,
     [workspaceId, date]
   );
-  return rows as Task[];
+
+  // 태스크별로 그룹화하여 태그 배열 생성
+  const tasksMap = new Map<number, Task>();
+
+  rows.forEach((row: any) => {
+    if (!tasksMap.has(row.id)) {
+      tasksMap.set(row.id, {
+        id: row.id,
+        title: row.title,
+        start_time: row.start_time,
+        end_time: row.end_time,
+        content: row.content,
+        status: row.status,
+        color: row.color,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+        created_by: row.created_by,
+        updated_by: row.updated_by,
+        workspace_id: row.workspace_id,
+        tags: []
+      });
+    }
+
+    // 태그가 있으면 추가
+    if (row.tag_id) {
+      tasksMap.get(row.id)!.tags!.push({
+        tag_id: row.tag_id,
+        name: row.tag_name,
+        color: row.tag_color
+      });
+    }
+  });
+
+  return Array.from(tasksMap.values());
 }
 
 /**

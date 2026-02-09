@@ -23,6 +23,7 @@ interface Task {
   content: string | null;
   status: "TODO" | "IN_PROGRESS" | "DONE";
   priority?: "low" | "medium" | "high";
+  color?: string;
   tags?: Tag[];
   team?: string;
 }
@@ -231,6 +232,8 @@ export default function TasksDemo() {
             start_time: taskData.start_time,
             end_time: taskData.end_time,
             content: taskData.content || null,
+            color: taskData.color,
+            tag_ids: taskData.tag_ids,
           }),
         });
 
@@ -252,6 +255,8 @@ export default function TasksDemo() {
             end_time: taskData.end_time,
             content: taskData.content || null,
             status: "TODO",
+            color: taskData.color,
+            tag_ids: taskData.tag_ids,
             workspace_id: currentWorkspace.workspace_id,
           }),
         });
@@ -630,8 +635,12 @@ export default function TasksDemo() {
               title: selectedTask.title,
               start_time: selectedTask.start_time,
               end_time: selectedTask.end_time,
-              content: selectedTask.content || '' // null을 빈 문자열로 변환
-            } : null}
+              content: selectedTask.content || '',
+              color: selectedTask.color,
+              tag_ids: selectedTask.tags?.map(tag => tag.tag_id)
+            } : undefined}
+            workspaceType={currentWorkspace?.type}
+            ownerId={currentWorkspace?.owner_id}
         />
       </div>
   );

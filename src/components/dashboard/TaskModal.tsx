@@ -10,6 +10,16 @@ export interface TaskFormData {
   end_time: string;
   content: string;
   status?: "TODO" | "IN_PROGRESS" | "DONE";
+  color?: string;
+  tag_ids?: number[];
+}
+
+interface Tag {
+  tag_id: number;
+  name: string;
+  color: string;
+  owner_type: "team" | "personal";
+  owner_id: number;
 }
 
 interface TaskModalProps {
@@ -19,9 +29,11 @@ interface TaskModalProps {
   onDelete?: (taskId: number) => void;
   mode?: "create" | "view" | "edit";
   initialData?: TaskFormData | null;
+  workspaceType?: "team" | "personal";
+  ownerId?: number;
 }
 
-export default function TaskModal({ isOpen, onClose, onSave, onDelete, mode = "create", initialData }: TaskModalProps) {
+export default function TaskModal({ isOpen, onClose, onSave, onDelete, mode = "create", initialData, workspaceType, ownerId }: TaskModalProps) {
   const t = useTranslations("dashboard.tasks.modal");
   const tStatus = useTranslations("dashboard.tasks.status");
   const [currentMode, setCurrentMode] = useState<"create" | "view" | "edit">(mode);
@@ -30,8 +42,132 @@ export default function TaskModal({ isOpen, onClose, onSave, onDelete, mode = "c
     start_time: "",
     end_time: "",
     content: "",
+    color: "#3B82F6",
+    tag_ids: [],
   });
   const [errors, setErrors] = useState<Partial<Record<keyof TaskFormData, string>>>({});
+  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+  const [loadingTags, setLoadingTags] = useState(false);
+  const [showNewTagForm, setShowNewTagForm] = useState(false);
+  const [newTagName, setNewTagName] = useState("");
+  const [newTagColor, setNewTagColor] = useState("#3B82F6");
+
+  // 색상 옵션
+  const colorOptions = [
+    { value: "#3B82F6", label: "파란색" },
+    { value: "#EF4444", label: "빨간색" },
+    { value: "#10B981", label: "초록색" },
+    { value: "#F59E0B", label: "주황색" },
+    { value: "#8B5CF6", label: "보라색" },
+    { value: "#EC4899", label: "분홍색" },
+    { value: "#6366F1", label: "인디고" },
+    { value: "#14B8A6", label: "청록색" },
+  ];
+
+  // 태그 불러오기
+  useEffect(() => {
+    if (isOpen && workspaceType && ownerId) {
+      fetchTags();
+    }
+  }, [isOpen, workspaceType, ownerId]);
+
+  const fetchTags = async () => {
+    if (!workspaceType || !ownerId) return;
+
+    setLoadingTags(true);
+    try {
+      const response = await fetch(`/api/tags?owner_type=${workspaceType}&owner_id=${ownerId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setAvailableTags(data.tags || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch tags:", error);
+    } finally {
+      setLoadingTags(false);
+    }
+  };
+
+  // 폼 데이터 초기화 (태그 로딩 후)
+  useEffect(() => {
+    if (isOpen) {
+      setCurrentMode(mode);
+      if (initialData && (mode === "view" || mode === "edit")) {
+        setFormData({
+          id: initialData.id,
+          title: initialData.title,
+          start_time: formatDateTimeLocal(initialData.start_time),
+          end_time: formatDateTimeLocal(initialData.end_time),
+          content: initialData.content || "",
+          status: initialData.status,
+          color: initialData.color || "#3B82F6",
+          tag_ids: initialData.tag_ids || [],
+        });
+      } else {
+        // Create 모드
+        setFormData({
+          title: "",
+          start_time: "",
+          end_time: "",
+          content: "",
+          color: "#3B82F6",
+          tag_ids: [],
+        });
+      }
+    } else {
+      // 모달이 닫힐 때 폼 초기화
+      setFormData({
+        title: "",
+        start_time: "",
+        end_time: "",
+        content: "",
+        color: "#3B82F6",
+        tag_ids: [],
+      });
+      setErrors({});
+      setCurrentMode("create");
+    }
+  }, [isOpen, initialData, mode]);
+
+  const handleCreateTag = async () => {
+    if (!newTagName.trim() || !workspaceType || !ownerId) return;
+
+    try {
+      const response = await fetch("/api/tags", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newTagName.trim(),
+          color: newTagColor,
+          owner_type: workspaceType,
+          owner_id: ownerId,
+        }),
+      });
+
+      if (response.ok) {
+        setNewTagName("");
+        setNewTagColor("#3B82F6");
+        setShowNewTagForm(false);
+        await fetchTags();
+      } else {
+        const error = await response.json();
+        alert(error.error || "태그 생성에 실패했습니다.");
+      }
+    } catch (error) {
+      console.error("Failed to create tag:", error);
+      alert("태그 생성에 실패했습니다.");
+    }
+  };
+
+  const toggleTag = (tagId: number) => {
+    setFormData(prev => {
+      const currentTags = prev.tag_ids || [];
+      const newTags = currentTags.includes(tagId)
+        ? currentTags.filter(id => id !== tagId)
+        : [...currentTags, tagId];
+      return { ...prev, tag_ids: newTags };
+    });
+  };
 
   const formatDateTimeLocal = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -50,32 +186,6 @@ export default function TaskModal({ isOpen, onClose, onSave, onDelete, mode = "c
       minute: "2-digit",
     });
   };
-
-  useEffect(() => {
-    if (isOpen) {
-      setCurrentMode(mode);
-      if (initialData && (mode === "view" || mode === "edit")) {
-        setFormData({
-          id: initialData.id,
-          title: initialData.title,
-          start_time: formatDateTimeLocal(initialData.start_time),
-          end_time: formatDateTimeLocal(initialData.end_time),
-          content: initialData.content || "",
-          status: initialData.status,
-        });
-      }
-    } else {
-      // 모달이 닫힐 때 폼 초기화
-      setFormData({
-        title: "",
-        start_time: "",
-        end_time: "",
-        content: "",
-      });
-      setErrors({});
-      setCurrentMode("create");
-    }
-  }, [isOpen, initialData, mode]);
 
   const validate = (): boolean => {
     const newErrors: Partial<Record<keyof TaskFormData, string>> = {};
@@ -100,6 +210,8 @@ export default function TaskModal({ isOpen, onClose, onSave, onDelete, mode = "c
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validate()) {
+      console.log("Submitting task with formData:", formData);
+      console.log("tag_ids being submitted:", formData.tag_ids);
       onSave(formData);
     }
   };
@@ -112,6 +224,19 @@ export default function TaskModal({ isOpen, onClose, onSave, onDelete, mode = "c
   };
 
   const handleEditClick = () => {
+    // Edit 모드로 전환할 때 initialData로 폼 데이터를 다시 설정
+    if (initialData) {
+      setFormData({
+        id: initialData.id,
+        title: initialData.title,
+        start_time: formatDateTimeLocal(initialData.start_time),
+        end_time: formatDateTimeLocal(initialData.end_time),
+        content: initialData.content || "",
+        status: initialData.status,
+        color: initialData.color || "#3B82F6",
+        tag_ids: initialData.tag_ids || [],
+      });
+    }
     setCurrentMode("edit");
   };
 
@@ -124,6 +249,8 @@ export default function TaskModal({ isOpen, onClose, onSave, onDelete, mode = "c
         end_time: formatDateTimeLocal(initialData.end_time),
         content: initialData.content || "",
         status: initialData.status,
+        color: initialData.color || "#3B82F6",
+        tag_ids: initialData.tag_ids || [],
       });
     }
     setCurrentMode("view");
@@ -152,9 +279,18 @@ export default function TaskModal({ isOpen, onClose, onSave, onDelete, mode = "c
           {/* 헤더 */}
           <div className="flex items-start justify-between mb-4">
             <div className="flex-1">
-              <h2 className="text-xl font-semibold text-popover-foreground">
-                {formData.title}
-              </h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-semibold text-popover-foreground">
+                  {formData.title}
+                </h2>
+                {formData.color && (
+                  <div
+                    className="w-4 h-4 rounded-full border border-border"
+                    style={{ backgroundColor: formData.color }}
+                    title="태스크 색상"
+                  />
+                )}
+              </div>
               {formData.status && (
                 <span className={`inline-block mt-2 px-2 py-1 rounded-full text-xs font-medium ${statusColors[formData.status]}`}>
                   {statusLabels[formData.status]}
@@ -183,6 +319,28 @@ export default function TaskModal({ isOpen, onClose, onSave, onDelete, mode = "c
                 {formatDateTimeDisplay(formData.start_time)} - {formatDateTimeDisplay(formData.end_time)}
               </span>
             </div>
+
+            {/* 태그 */}
+            {formData.tag_ids && formData.tag_ids.length > 0 && (
+              <div>
+                <h3 className="text-sm font-medium text-subtle-foreground mb-2">태그</h3>
+                <div className="flex flex-wrap gap-2">
+                  {formData.tag_ids.map(tagId => {
+                    const tag = availableTags.find(t => t.tag_id === tagId);
+                    if (!tag) return null;
+                    return (
+                      <span
+                        key={tag.tag_id}
+                        className="rounded-lg px-3 py-1 text-xs font-medium"
+                        style={{ backgroundColor: tag.color, color: 'white' }}
+                      >
+                        {tag.name}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* 내용 */}
             {formData.content && (
@@ -324,6 +482,155 @@ export default function TaskModal({ isOpen, onClose, onSave, onDelete, mode = "c
               rows={4}
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
             />
+          </div>
+
+          {/* 색상 선택 */}
+          <div>
+            <label className="mb-1 block text-sm font-medium text-subtle-foreground">
+              색상
+            </label>
+            <div className="flex gap-2">
+              {colorOptions.map(colorOption => (
+                <button
+                  key={colorOption.value}
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, color: colorOption.value }))}
+                  className={`relative w-10 h-10 rounded-lg border-2 transition-all ${
+                    formData.color === colorOption.value 
+                      ? 'border-black dark:border-white scale-110 shadow-lg' 
+                      : 'border-gray-300 dark:border-gray-600 hover:scale-105'
+                  }`}
+                  style={{ backgroundColor: colorOption.value }}
+                  title={colorOption.label}
+                >
+                  {formData.color === colorOption.value && (
+                    <svg
+                      className="absolute inset-0 m-auto w-6 h-6 text-white drop-shadow-lg"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 태그 선택 */}
+          <div>
+            <label className="mb-1 block text-sm font-medium text-subtle-foreground">
+              태그
+            </label>
+            {loadingTags ? (
+              <p className="text-sm text-muted-foreground">태그 불러오는 중...</p>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex flex-wrap gap-2">
+                  {availableTags.map(tag => {
+                    const isSelected = formData.tag_ids?.includes(tag.tag_id);
+                    return (
+                      <button
+                        key={tag.tag_id}
+                        type="button"
+                        onClick={() => toggleTag(tag.tag_id)}
+                        className={`relative rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
+                          isSelected
+                            ? 'ring-2 ring-offset-2 ring-black dark:ring-white shadow-lg scale-105'
+                            : 'opacity-60 hover:opacity-100 hover:scale-105'
+                        }`}
+                        style={{
+                          backgroundColor: tag.color,
+                          color: 'white'
+                        }}
+                      >
+                        <span className="flex items-center gap-1">
+                          {isSelected && (
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                          {tag.name}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {showNewTagForm ? (
+                  <div className="flex flex-col gap-2 p-3 border border-border rounded-lg bg-muted/30">
+                    <input
+                      type="text"
+                      value={newTagName}
+                      onChange={(e) => setNewTagName(e.target.value)}
+                      placeholder="새 태그 이름"
+                      className="w-full rounded-lg border px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-2 border-input focus:ring-ring bg-background text-foreground"
+                    />
+                    <div className="flex gap-2">
+                      {colorOptions.map(colorOption => (
+                        <button
+                          key={colorOption.value}
+                          type="button"
+                          onClick={() => setNewTagColor(colorOption.value)}
+                          className={`relative w-8 h-8 rounded-lg border-2 transition-all ${
+                            newTagColor === colorOption.value 
+                              ? 'border-black dark:border-white scale-110 shadow-lg' 
+                              : 'border-gray-300 dark:border-gray-600 hover:scale-105'
+                          }`}
+                          style={{ backgroundColor: colorOption.value }}
+                          title={colorOption.label}
+                        >
+                          {newTagColor === colorOption.value && (
+                            <svg
+                              className="absolute inset-0 m-auto w-5 h-5 text-white drop-shadow-lg"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleCreateTag}
+                        className="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+                      >
+                        생성
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowNewTagForm(false);
+                          setNewTagName("");
+                          setNewTagColor("#3B82F6");
+                        }}
+                        className="flex-1 rounded-lg border border-border px-4 py-2 text-sm font-medium text-subtle-foreground transition-colors hover:bg-hover"
+                      >
+                        취소
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowNewTagForm(true)}
+                    className="w-full rounded-lg border-2 border-dashed border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+                  >
+                    + 새 태그 추가
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* 버튼 */}
