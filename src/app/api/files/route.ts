@@ -21,24 +21,28 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const teamId = searchParams.get("team_id");
-    const fileId = searchParams.get("id");
+    const teamIdParam = searchParams.get("team_id");
+    const fileIdParam = searchParams.get("id");
     const totalSize = searchParams.get("total_size");
 
-    if (totalSize) {
+    if (totalSize && teamIdParam) {
       // 팀의 총 파일 크기 조회
-      const totalFileSize = await getTotalFileSizeByTeamId(teamId);
+      const totalFileSize = await getTotalFileSizeByTeamId(Number(teamIdParam));
       return NextResponse.json({ totalFileSize });
     }
 
-    if (fileId) {
+    if (fileIdParam) {
       // 특정 파일 조회
-      const file = await getFileById(fileId);
+      const file = await getFileById(Number(fileIdParam));
       return NextResponse.json(file);
     }
 
+    if (!teamIdParam) {
+      return NextResponse.json({ error: "team_id is required" }, { status: 400 });
+    }
+
     // 팀의 모든 파일 조회
-    const files = await getFilesByTeamId(teamId);
+    const files = await getFilesByTeamId(Number(teamIdParam));
     return NextResponse.json(files);
   } catch (error) {
     console.error("Error fetching files:", error);
@@ -58,20 +62,32 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { teamId, name, size, type } = body;
+    const { team_id, file_name, file_size_mb } = body;
+
+    if (!team_id || !file_name || file_size_mb === undefined) {
+      return NextResponse.json(
+        { error: "team_id, file_name, file_size_mb are required" },
+        { status: 400 }
+      );
+    }
 
     // 스토리지 용량 초과 체크
-    const isWithinLimit = await checkStorageLimit(user.id, size);
-    if (!isWithinLimit) {
+    const storageCheck = await checkStorageLimit(Number(team_id), Number(file_size_mb));
+    if (!storageCheck.allowed) {
       return NextResponse.json(
-        { error: "Storage limit exceeded" },
+        {
+          error: "Storage limit exceeded",
+          current: storageCheck.current,
+          limit: storageCheck.limit,
+          required: Number(file_size_mb)
+        },
         { status: 403 }
       );
     }
 
     // 파일 생성
-    const file = await createFile({ teamId, name, size, type, userId: user.id });
-    return NextResponse.json(file, { status: 201 });
+    const fileId = await createFile(Number(team_id), file_name, Number(file_size_mb));
+    return NextResponse.json({ id: fileId, message: "File created successfully" }, { status: 201 });
   } catch (error) {
     console.error("Error creating file:", error);
     return NextResponse.json(
@@ -90,11 +106,22 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, name, size, type } = body;
+    const { id, file_name } = body;
+
+    if (!id || !file_name) {
+      return NextResponse.json(
+        { error: "id and file_name are required" },
+        { status: 400 }
+      );
+    }
 
     // 파일 정보 수정
-    const file = await updateFile({ id, name, size, type, userId: user.id });
-    return NextResponse.json(file);
+    const success = await updateFile(Number(id), file_name);
+    if (!success) {
+      return NextResponse.json({ error: "File not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ message: "File updated successfully" });
   } catch (error) {
     console.error("Error updating file:", error);
     return NextResponse.json(
@@ -104,7 +131,7 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// DELETE /api/files - 파일 삭제
+// DELETE /api/files?id=1 - 파일 삭제
 export async function DELETE(request: NextRequest) {
   try {
     const user = await getAuthUser(request);
@@ -113,10 +140,18 @@ export async function DELETE(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const fileId = searchParams.get("id");
+    const fileIdParam = searchParams.get("id");
+
+    if (!fileIdParam) {
+      return NextResponse.json({ error: "id is required" }, { status: 400 });
+    }
 
     // 파일 삭제
-    await deleteFile(fileId);
+    const success = await deleteFile(Number(fileIdParam));
+    if (!success) {
+      return NextResponse.json({ error: "File not found" }, { status: 404 });
+    }
+
     return NextResponse.json({ message: "File deleted successfully" });
   } catch (error) {
     console.error("Error deleting file:", error);

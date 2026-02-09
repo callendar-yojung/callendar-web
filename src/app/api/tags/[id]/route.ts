@@ -5,7 +5,7 @@ import { updateTag, deleteTag } from "@/lib/tag";
 // PATCH /api/tags/[id]
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getAuthUser(request);
@@ -13,7 +13,8 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const tagId = Number(params.id);
+    const { id } = await params;
+    const tagId = Number(id);
     const body = await request.json();
 
     // TODO: 권한 확인 로직 추가
@@ -21,10 +22,10 @@ export async function PATCH(
     await updateTag(tagId, body);
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Failed to update tag:", error);
 
-    if (error.code === "ER_DUP_ENTRY") {
+    if (error && typeof error === "object" && "code" in error && error.code === "ER_DUP_ENTRY") {
       return NextResponse.json(
         { error: "Tag with this name already exists" },
         { status: 409 }
@@ -41,7 +42,7 @@ export async function PATCH(
 // DELETE /api/tags/[id]
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getAuthUser(request);
@@ -49,7 +50,8 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const tagId = Number(params.id);
+    const { id } = await params;
+    const tagId = Number(id);
 
     // TODO: 권한 확인 로직 추가
 

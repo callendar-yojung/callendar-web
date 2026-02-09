@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
 import { captureOrder } from "@/lib/paypal";
-import { createSubscription } from "@/lib/subscription";
+import { createSubscription, type OwnerType } from "@/lib/subscription";
 
 // POST /api/paypal/capture-order - PayPal 결제 승인 및 구독 생성
 export async function POST(request: NextRequest) {
@@ -12,11 +12,11 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { order_id, team_id, plan_id } = body;
+    const { order_id, owner_id, owner_type, plan_id } = body;
 
-    if (!order_id || !team_id || !plan_id) {
+    if (!order_id || !owner_id || !owner_type || !plan_id) {
       return NextResponse.json(
-        { error: "order_id, team_id, plan_id가 필요합니다." },
+        { error: "order_id, owner_id, owner_type, plan_id가 필요합니다." },
         { status: 400 }
       );
     }
@@ -33,7 +33,8 @@ export async function POST(request: NextRequest) {
 
     // 구독 생성
     const subscriptionId = await createSubscription(
-      Number(team_id),
+      Number(owner_id),
+      owner_type as OwnerType,
       Number(plan_id)
     );
 

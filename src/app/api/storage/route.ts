@@ -19,22 +19,22 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const teamId = searchParams.get("team_id");
-    const checkLimit = searchParams.get("check_limit");
+    const teamIdParam = searchParams.get("team_id");
+    const checkLimitParam = searchParams.get("check_limit");
 
-    if (!teamId) {
-      return NextResponse.json({ error: "팀 ID를 제공해야 합니다." }, { status: 400 });
+    if (!teamIdParam) {
+      return NextResponse.json({ error: "team_id is required" }, { status: 400 });
     }
 
-    if (checkLimit) {
-      const storageLimit = parseInt(checkLimit, 10);
-      const isWithinLimit = await checkStorageLimit(user.id, teamId, storageLimit);
+    const teamId = Number(teamIdParam);
 
-      return NextResponse.json({ withinLimit: isWithinLimit });
+    if (checkLimitParam) {
+      const additionalMb = Number(checkLimitParam);
+      const result = await checkStorageLimit(teamId, additionalMb);
+      return NextResponse.json(result);
     }
 
-    const storageUsage = await getStorageUsageByTeamId(user.id, teamId);
-
+    const storageUsage = await getStorageUsageByTeamId(teamId);
     return NextResponse.json(storageUsage);
   } catch (error) {
     console.error("Error fetching storage usage:", error);
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/storage - 저장소 사용량 초기화
+// POST /api/storage - 저장소 사용량 초기화 또는 재계산
 export async function POST(request: NextRequest) {
   try {
     const user = await getAuthUser(request);
@@ -53,15 +53,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { team_id, initial_usage } = await request.json();
+    const body = await request.json();
+    const { team_id, action } = body;
 
     if (!team_id) {
-      return NextResponse.json({ error: "팀 ID를 제공해야 합니다." }, { status: 400 });
+      return NextResponse.json({ error: "team_id is required" }, { status: 400 });
     }
 
-    await initializeStorageUsage(user.id, team_id, initial_usage);
+    const teamId = Number(team_id);
 
-    return NextResponse.json({ message: "Storage usage initialized" });
+    if (action === "recalculate") {
+      const recalculatedSize = await recalculateStorageUsage(teamId);
+      const storageUsage = await getStorageUsageByTeamId(teamId);
+      return NextResponse.json({ ...storageUsage, recalculated_size: recalculatedSize });
+    }
+
+    await initializeStorageUsage(teamId);
+    const storageUsage = await getStorageUsageByTeamId(teamId);
+    return NextResponse.json(storageUsage);
   } catch (error) {
     console.error("Error initializing storage usage:", error);
     return NextResponse.json(
@@ -79,15 +88,23 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { team_id, usage } = await request.json();
+    const body = await request.json();
+    const { team_id, used_storage_mb } = body;
 
-    if (!team_id) {
-      return NextResponse.json({ error: "팀 ID를 제공해야 합니다." }, { status: 400 });
+    if (!team_id || used_storage_mb === undefined) {
+      return NextResponse.json(
+        { error: "team_id and used_storage_mb are required" },
+        { status: 400 }
+      );
     }
 
-    await updateStorageUsage(user.id, team_id, usage);
+    const success = await updateStorageUsage(Number(team_id), Number(used_storage_mb));
+    if (!success) {
+      return NextResponse.json({ error: "Storage usage not found" }, { status: 404 });
+    }
 
-    return NextResponse.json({ message: "Storage usage updated" });
+    const storageUsage = await getStorageUsageByTeamId(Number(team_id));
+    return NextResponse.json(storageUsage);
   } catch (error) {
     console.error("Error updating storage usage:", error);
     return NextResponse.json(
@@ -97,7 +114,7 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// DELETE /api/storage - 저장소 사용량 삭제
+// DELETE /api/storage?team_id=1 - 저장소 사용량 삭제
 export async function DELETE(request: NextRequest) {
   try {
     const user = await getAuthUser(request);
@@ -105,15 +122,19 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { team_id } = await request.json();
+    const { searchParams } = new URL(request.url);
+    const teamIdParam = searchParams.get("team_id");
 
-    if (!team_id) {
-      return NextResponse.json({ error: "팀 ID를 제공해야 합니다." }, { status: 400 });
+    if (!teamIdParam) {
+      return NextResponse.json({ error: "team_id is required" }, { status: 400 });
     }
 
-    await deleteStorageUsage(user.id, team_id);
+    const success = await deleteStorageUsage(Number(teamIdParam));
+    if (!success) {
+      return NextResponse.json({ error: "Storage usage not found" }, { status: 404 });
+    }
 
-    return NextResponse.json({ message: "Storage usage deleted" });
+    return NextResponse.json({ message: "Storage usage deleted successfully" });
   } catch (error) {
     console.error("Error deleting storage usage:", error);
     return NextResponse.json(
