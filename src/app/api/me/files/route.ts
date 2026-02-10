@@ -3,12 +3,12 @@ import { getAuthUser } from "@/lib/auth-helper";
 import { getWorkspaceById, checkWorkspaceAccess } from "@/lib/workspace";
 import { getFilesByOwner, deleteFileRecord, getFileById } from "@/lib/file";
 import type { OwnerType } from "@/lib/storage";
-import { deleteFromS3, extractS3KeyFromUrl, isS3Configured } from "@/lib/s3";
 import { unlink } from "node:fs/promises";
 import path from "node:path";
 
 // 파일 스토리지에서 삭제 (S3 또는 로컬)
 async function deleteFileFromStorage(filePath: string): Promise<void> {
+  const { isS3Configured, extractS3KeyFromUrl, deleteFromS3 } = await import("@/lib/s3");
   if (isS3Configured()) {
     // S3에서 삭제
     const s3Key = extractS3KeyFromUrl(filePath);

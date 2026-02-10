@@ -1,7 +1,6 @@
 // S3 클라이언트 (lazy initialization with dynamic import)
-let s3ClientInstance: InstanceType<
-  typeof import("@aws-sdk/client-s3").S3Client
-> | null = null;
+// biome-ignore lint/suspicious/noExplicitAny: Dynamic import를 위해 any 사용
+let s3ClientInstance: any = null;
 
 async function getS3Client() {
   if (!s3ClientInstance) {

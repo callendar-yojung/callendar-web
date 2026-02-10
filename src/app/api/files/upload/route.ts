@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
 import { createFileRecord } from "@/lib/file";
 import { canUploadFile, type OwnerType, formatBytes } from "@/lib/storage";
-import { uploadToS3, generateS3Key, isS3Configured } from "@/lib/s3";
 import { v4 as uuidv4 } from "uuid";
 import { writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
@@ -100,6 +99,7 @@ export async function POST(request: NextRequest) {
     let publicPath: string;
 
     // S3가 설정되어 있으면 S3에 업로드, 아니면 로컬 파일 시스템 사용
+    const { isS3Configured, generateS3Key, uploadToS3 } = await import("@/lib/s3");
     if (isS3Configured()) {
       // S3에 업로드
       const s3Key = generateS3Key(ownerType, Number(ownerId), storedName);
