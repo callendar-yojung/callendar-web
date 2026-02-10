@@ -178,7 +178,7 @@ CREATE TABLE IF NOT EXISTS admins (
 CREATE INDEX idx_admins_username ON admins(username);
 CREATE INDEX idx_admins_email ON admins(email);
 
--- 기본 관리자 계정 생성 (비밀번호: admin1234)
+-- 기본 관리자 계정 생성
 INSERT INTO admins (username, password, name, email, role, created_at) VALUES
-  ('admin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', '시스템 관리자', 'admin@task.com', 'SUPER_ADMIN', NOW())
+  ('admin', '--', '시스템 관리자', 'admin@task.com', 'SUPER_ADMIN', NOW())
 ON DUPLICATE KEY UPDATE username=username;
