@@ -84,14 +84,23 @@ export default function CalendarDemo() {
     t("calendar.weekDays.sat"),
   ];
 
+  // Helper to format date as YYYY-MM-DD in local timezone
+  const formatLocalDate = (date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
   // 특정 날짜의 태스크 가져오기
   const getTasksForDate = (day: number | null) => {
     if (!day) return [];
     const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 
     return tasks.filter((task) => {
-      const taskStartDate = new Date(task.start_time).toISOString().split("T")[0];
-      const taskEndDate = new Date(task.end_time || task.start_time).toISOString().split("T")[0];
+      // Use local date comparison instead of UTC
+      const taskStartDate = formatLocalDate(new Date(task.start_time));
+      const taskEndDate = formatLocalDate(new Date(task.end_time || task.start_time));
       return dateStr >= taskStartDate && dateStr <= taskEndDate;
     });
   };

@@ -169,11 +169,21 @@ export default function TaskModal({ isOpen, onClose, onSave, onDelete, mode = "c
     });
   };
 
+  // Convert UTC time from server to local time for datetime-local input display
   const formatDateTimeLocal = (dateStr: string) => {
     const date = new Date(dateStr);
     const offset = date.getTimezoneOffset();
     const localDate = new Date(date.getTime() - offset * 60 * 1000);
     return localDate.toISOString().slice(0, 16);
+  };
+
+  // Convert local datetime-local value to UTC ISO string for API
+  const localToUTC = (localDateTimeString: string) => {
+    if (!localDateTimeString) return localDateTimeString;
+    // datetime-local input gives us "YYYY-MM-DDTHH:mm" in local time
+    // new Date() interprets this as local time, toISOString() converts to UTC
+    const date = new Date(localDateTimeString);
+    return date.toISOString();
   };
 
   const formatDateTimeDisplay = (dateStr: string) => {
@@ -210,9 +220,15 @@ export default function TaskModal({ isOpen, onClose, onSave, onDelete, mode = "c
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validate()) {
-      console.log("Submitting task with formData:", formData);
-      console.log("tag_ids being submitted:", formData.tag_ids);
-      onSave(formData);
+      // Convert local times to UTC ISO strings before sending to API
+      const dataToSave = {
+        ...formData,
+        start_time: localToUTC(formData.start_time),
+        end_time: localToUTC(formData.end_time),
+      };
+      console.log("Submitting task with formData:", dataToSave);
+      console.log("tag_ids being submitted:", dataToSave.tag_ids);
+      onSave(dataToSave);
     }
   };
 

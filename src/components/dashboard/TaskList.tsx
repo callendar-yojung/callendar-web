@@ -39,14 +39,25 @@ export default function TaskList() {
   // 타임라인 전용
   const timelineRef = useRef<HTMLDivElement>(null);
 
+  // Helper to format date as YYYY-MM-DD in local timezone
+  const formatLocalDate = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   // 날짜 기반 태스크 불러오기 (양쪽 뷰 공유)
   const fetchTasks = useCallback(async () => {
     if (!currentWorkspace) return;
     try {
       setIsLoading(true);
-      const dateStr = selectedDate.toISOString().split("T")[0];
+      // Use local date, not UTC date
+      const dateStr = formatLocalDate(selectedDate);
+      // Send timezone offset so server can query correctly
+      const timezoneOffset = new Date().getTimezoneOffset();
       const response = await fetch(
-        `/api/tasks/date?workspace_id=${currentWorkspace.workspace_id}&date=${dateStr}`
+        `/api/tasks/date?workspace_id=${currentWorkspace.workspace_id}&date=${dateStr}&tz_offset=${timezoneOffset}`
       );
       if (response.ok) {
         const data = await response.json();

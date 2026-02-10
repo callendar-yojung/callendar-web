@@ -341,13 +341,27 @@ export async function getTaskCountsByMonth(
 
 /**
  * 특정 날짜의 태스크 목록 조회 (워크스페이스 기반)
+ * @param workspaceId - 워크스페이스 ID
+ * @param date - 조회할 날짜 (YYYY-MM-DD, 사용자 로컬 시간 기준)
+ * @param timezoneOffsetMinutes - 사용자 타임존 오프셋 (분 단위, UTC 기준, e.g., -540 for UTC+9)
  */
 export async function getTasksByDate(
   workspaceId: number,
-  date: string
+  date: string,
+  timezoneOffsetMinutes: number = 0
 ): Promise<Task[]> {
+  // Calculate the UTC time range for the user's local date
+  // timezoneOffsetMinutes is negative for timezones ahead of UTC (e.g., -540 for UTC+9)
+  // So we add the offset to convert local time to UTC
+  const localDateStart = new Date(`${date}T00:00:00`);
+  const localDateEnd = new Date(`${date}T23:59:59.999`);
+
+  // Convert local time to UTC by adding the offset
+  const utcStart = new Date(localDateStart.getTime() + timezoneOffsetMinutes * 60 * 1000);
+  const utcEnd = new Date(localDateEnd.getTime() + timezoneOffsetMinutes * 60 * 1000);
+
   const [rows] = await pool.query<RowDataPacket[]>(
-    `SELECT 
+    `SELECT
       t.*,
       tg.tag_id,
       tags.name as tag_name,
@@ -356,9 +370,10 @@ export async function getTasksByDate(
      LEFT JOIN task_tags tg ON t.id = tg.task_id
      LEFT JOIN tags ON tg.tag_id = tags.tag_id
      WHERE t.workspace_id = ?
-       AND DATE(t.start_time) = DATE(?)
+       AND t.start_time >= ?
+       AND t.start_time <= ?
      ORDER BY t.start_time ASC`,
-    [workspaceId, date]
+    [workspaceId, utcStart, utcEnd]
   );
 
   // 태스크별로 그룹화하여 태그 배열 생성
@@ -398,34 +413,46 @@ export async function getTasksByDate(
 
 /**
  * 특정 월의 날짜별 태스크 목록 조회 (워크스페이스 기반) - 제목 포함
+ * @param workspaceId - 워크스페이스 ID
+ * @param year - 연도
+ * @param month - 월 (1-12)
+ * @param timezoneOffsetMinutes - 사용자 타임존 오프셋 (분 단위, UTC 기준)
  */
 export async function getTasksWithTitlesByMonth(
   workspaceId: number,
   year: number,
-  month: number
+  month: number,
+  timezoneOffsetMinutes: number = 0
 ): Promise<{ date: string; tasks: { id: number; title: string; start_time: Date; end_time: Date }[] }[]> {
-  const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+  // Calculate the UTC time range for the user's local month
+  const localMonthStart = new Date(year, month - 1, 1, 0, 0, 0);
   const lastDay = new Date(year, month, 0).getDate();
-  const endDate = `${year}-${String(month).padStart(2, '0')}-${lastDay}`;
+  const localMonthEnd = new Date(year, month - 1, lastDay, 23, 59, 59, 999);
+
+  // Convert local time to UTC
+  const utcStart = new Date(localMonthStart.getTime() + timezoneOffsetMinutes * 60 * 1000);
+  const utcEnd = new Date(localMonthEnd.getTime() + timezoneOffsetMinutes * 60 * 1000);
 
   const [rows] = await pool.query<RowDataPacket[]>(
-    `SELECT 
-       DATE_FORMAT(t.start_time, '%Y-%m-%d') as date,
+    `SELECT
        t.id,
        t.title,
        t.start_time,
        t.end_time
      FROM tasks t
      WHERE t.workspace_id = ?
-       AND DATE(t.start_time) BETWEEN ? AND ?
+       AND t.start_time >= ?
+       AND t.start_time <= ?
      ORDER BY t.start_time ASC`,
-    [workspaceId, startDate, endDate]
+    [workspaceId, utcStart, utcEnd]
   );
 
-  // 날짜별로 그룹화
+  // Group by local date
   const grouped = rows.reduce((acc: any, row: any) => {
-    // DATE_FORMAT으로 이미 문자열이므로 직접 사용
-    const dateStr = row.date;
+    // Convert UTC start_time to user's local date for grouping
+    const startTimeUTC = new Date(row.start_time);
+    const localTime = new Date(startTimeUTC.getTime() - timezoneOffsetMinutes * 60 * 1000);
+    const dateStr = localTime.toISOString().split('T')[0];
 
     if (!acc[dateStr]) {
       acc[dateStr] = [];
