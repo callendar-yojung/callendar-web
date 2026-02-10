@@ -49,15 +49,19 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "*.s3.*.amazonaws.com",
+        hostname: "**.s3.**.amazonaws.com",
       },
       {
         protocol: "https",
-        hostname: "*.s3.amazonaws.com",
+        hostname: "**.s3.amazonaws.com",
       },
       {
         protocol: "https",
-        hostname: "s3.*.amazonaws.com",
+        hostname: "s3.**.amazonaws.com",
+      },
+      {
+        protocol: "https",
+        hostname: "dayo-profile.s3.ap-northeast-2.amazonaws.com",
       },
     ],
   },
