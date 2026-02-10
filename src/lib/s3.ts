@@ -1,14 +1,11 @@
-import {
-  S3Client,
-  PutObjectCommand,
-  DeleteObjectCommand,
-} from "@aws-sdk/client-s3";
+// S3 클라이언트 (lazy initialization with dynamic import)
+let s3ClientInstance: InstanceType<
+  typeof import("@aws-sdk/client-s3").S3Client
+> | null = null;
 
-// S3 클라이언트 (lazy initialization)
-let s3ClientInstance: S3Client | null = null;
-
-function getS3Client(): S3Client {
+async function getS3Client() {
   if (!s3ClientInstance) {
+    const { S3Client } = await import("@aws-sdk/client-s3");
     s3ClientInstance = new S3Client({
       region: process.env.AWS_REGION || "ap-northeast-2",
       credentials: {
@@ -41,6 +38,7 @@ export async function uploadToS3(
     throw new Error("S3 is not configured");
   }
 
+  const { PutObjectCommand } = await import("@aws-sdk/client-s3");
   const bucketName = process.env.AWS_S3_BUCKET || "";
   const region = process.env.AWS_REGION || "ap-northeast-2";
 
@@ -51,7 +49,8 @@ export async function uploadToS3(
     ContentType: contentType,
   });
 
-  await getS3Client().send(command);
+  const client = await getS3Client();
+  await client.send(command);
 
   // 공개 URL 반환 (CloudFront 또는 S3 직접 URL)
   const cloudFrontDomain = process.env.AWS_CLOUDFRONT_DOMAIN;
@@ -71,6 +70,7 @@ export async function deleteFromS3(key: string): Promise<void> {
     return; // S3가 설정되지 않았으면 무시
   }
 
+  const { DeleteObjectCommand } = await import("@aws-sdk/client-s3");
   const bucketName = process.env.AWS_S3_BUCKET || "";
 
   const command = new DeleteObjectCommand({
@@ -78,7 +78,8 @@ export async function deleteFromS3(key: string): Promise<void> {
     Key: key,
   });
 
-  await getS3Client().send(command);
+  const client = await getS3Client();
+  await client.send(command);
 }
 
 /**
