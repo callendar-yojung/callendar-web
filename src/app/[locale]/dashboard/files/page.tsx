@@ -3,7 +3,6 @@
 import { useTranslations } from "next-intl";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useEffect, useState, useCallback } from "react";
-import Image from "next/image";
 
 interface FileRecord {
   file_id: number;
@@ -471,12 +470,11 @@ export default function FilesPage() {
                   {/* Thumbnail or Icon */}
                   <div className="relative aspect-square bg-muted">
                     {isImage(file.mime_type) ? (
-                      <Image
+                      <img
                         src={getFileUrl(file.file_path)}
                         alt={file.original_name}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
+                        className="h-full w-full object-cover"
+                        loading="lazy"
                       />
                     ) : (
                       <div className="flex h-full items-center justify-center text-5xl">
