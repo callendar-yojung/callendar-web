@@ -64,7 +64,14 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/callendar.pem
           chmod 600 ~/.ssh/callendar.pem
 
-      # 5️⃣ 파일 배포
+      # 5️⃣ 서버의 기존 빌드 삭제
+      - name: Clean old build on server
+        run: |
+          ssh -i ~/.ssh/callendar.pem -o StrictHostKeyChecking=no callendar@${{ secrets.SERVER_HOST }} << 'EOF'
+            rm -rf /home/callendar/apps/api/.next
+          EOF
+
+      # 6️⃣ 파일 배포
       - name: Deploy files
         run: |
           rsync -avz \
@@ -86,7 +93,7 @@ jobs:
             callendar@${{ secrets.SERVER_HOST }}:/home/callendar/apps/api/
 
 
-      # 🆕 환경 변수 파일 생성
+      # 7️⃣ 환경 변수 파일 생성
       - name: Create .env.production
         run: |
           ssh -i ~/.ssh/callendar.pem -o StrictHostKeyChecking=no callendar@${{ secrets.SERVER_HOST }} << 'EOF'
@@ -113,7 +120,7 @@ jobs:
             ENVEOF
             EOF
 
-      # 6️⃣ 서버에 node_modules 설치 및 PM2 재시작
+      # 8️⃣ 서버에 node_modules 설치 및 PM2 재시작
       - name: Install dependencies and restart PM2
         run: |
           ssh -i ~/.ssh/callendar.pem -o StrictHostKeyChecking=no callendar@${{ secrets.SERVER_HOST }} << 'EOF'
