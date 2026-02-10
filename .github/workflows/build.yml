@@ -50,10 +50,12 @@ jobs:
         with:
           node-version: 20
 
-      # 3️⃣ 빌드
+      # 3️⃣ 빌드 (Turbopack 비활성화)
       - name: Install & Build
+        env:
+          TURBOPACK: "0"
         run: |
-          npm install -g next 
+          npm install -g next
           npm ci
           npm run build
 
