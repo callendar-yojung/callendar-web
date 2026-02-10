@@ -336,6 +336,7 @@
       "overview": "Overview",
       "tasks": "Tasks",
       "calendar": "Calendar",
+      "files": "Files",
       "teams": "Teams",
       "settings": "Settings",
       "logout": "Log out"
@@ -426,6 +427,37 @@
         "sat": "Sat"
       }
     },
+    "files": {
+      "title": "Files & Photos",
+      "description": "Manage all files and photos uploaded to your workspace",
+      "all": "All",
+      "images": "Photos",
+      "documents": "Documents",
+      "others": "Others",
+      "noFiles": "No files yet",
+      "noFilesDesc": "Files attached to tasks will appear here",
+      "delete": "Delete",
+      "download": "Download",
+      "noPreview": "Preview not available for this file",
+      "unknownType": "Unknown type",
+      "deleteConfirmTitle": "Delete File",
+      "deleteConfirmMessage": "Are you sure you want to delete '{fileName}'? This action cannot be undone.",
+      "cancel": "Cancel",
+      "deleting": "Deleting...",
+      "loadError": "Failed to load files",
+      "deleteError": "Failed to delete file",
+      "selectMode": "Select",
+      "cancelSelect": "Cancel",
+      "selectedCount": "{count} selected",
+      "selectAll": "Select All",
+      "deselectAll": "Deselect All",
+      "downloadSelected": "Download",
+      "deleteSelected": "Delete",
+      "bulkDeleteConfirmTitle": "Delete Multiple Files",
+      "bulkDeleteConfirmMessage": "Are you sure you want to delete {count} files? This action cannot be undone.",
+      "bulkDeletePartial": "{deleted} deleted, {failed} failed",
+      "pageInfo": "Page {current} / {total} ({items} items)"
+    },
     "settings": {
       "title": "Settings",
       "subtitle": "Manage your account and application settings",
@@ -499,10 +531,13 @@
       },
       "usage": {
         "title": "Usage",
+        "currentPlan": "Current Plan",
         "storage": "Storage",
         "storageDesc": "Check your storage usage",
         "documents": "Documents",
         "files": "Files",
+        "fileCount": "files",
+        "maxFileSize": "Max File Size",
         "other": "Other",
         "api": "API Calls",
         "apiDesc": "Check this month's API usage",
@@ -515,9 +550,13 @@
         "activityDesc": "Check this month's activity statistics",
         "tasksCreated": "Tasks Created",
         "tasksCompleted": "Tasks Completed",
+        "tasksTodo": "To Do",
+        "tasksInProgress": "In Progress",
+        "totalTasks": "Total Tasks",
         "comments": "Comments",
         "meetings": "Meetings",
-        "thisMonth": "this month"
+        "thisMonth": "this month",
+        "loadError": "Failed to load usage data"
       }
     }
   }

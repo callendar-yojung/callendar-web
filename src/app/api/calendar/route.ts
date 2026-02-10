@@ -3,7 +3,7 @@ import { getAuthUser } from "@/lib/auth-helper";
 import { getTasksWithTitlesByMonth } from "@/lib/task";
 import { checkWorkspaceAccess } from "@/lib/workspace";
 
-// GET /api/calendar?workspace_id=123&year=2026&month=1&tz_offset=-540
+// GET /api/calendar?workspace_id=123&year=2026&month=1
 export async function GET(request: NextRequest) {
   try {
     const user = await getAuthUser(request);
@@ -15,7 +15,6 @@ export async function GET(request: NextRequest) {
     const workspaceId = searchParams.get("workspace_id");
     const year = searchParams.get("year");
     const month = searchParams.get("month");
-    const tzOffset = searchParams.get("tz_offset"); // Minutes offset from UTC
 
     if (!workspaceId || !year || !month) {
       return NextResponse.json(
@@ -34,14 +33,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Parse timezone offset (default to 0 if not provided)
-    const timezoneOffsetMinutes = tzOffset ? parseInt(tzOffset, 10) : 0;
-
     const tasksByDate = await getTasksWithTitlesByMonth(
       Number(workspaceId),
       Number(year),
-      Number(month),
-      timezoneOffsetMinutes
+      Number(month)
     );
 
     return NextResponse.json({ tasksByDate });

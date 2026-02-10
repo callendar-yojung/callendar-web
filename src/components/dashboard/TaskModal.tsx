@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 
 export interface TaskFormData {
@@ -12,6 +12,16 @@ export interface TaskFormData {
   status?: "TODO" | "IN_PROGRESS" | "DONE";
   color?: string;
   tag_ids?: number[];
+  file_ids?: number[];
+}
+
+interface PendingFile {
+  file_id: number;
+  original_name: string;
+  file_path: string;
+  file_size: number;
+  file_size_formatted: string;
+  mime_type: string | null;
 }
 
 interface Tag {
@@ -20,6 +30,18 @@ interface Tag {
   color: string;
   owner_type: "team" | "personal";
   owner_id: number;
+}
+
+interface TaskAttachment {
+  attachment_id: number;
+  task_id: number;
+  file_id: number;
+  original_name: string;
+  file_path: string;
+  file_size: number;
+  file_size_formatted: string;
+  mime_type: string | null;
+  created_at: string;
 }
 
 interface TaskModalProps {
@@ -52,6 +74,16 @@ export default function TaskModal({ isOpen, onClose, onSave, onDelete, mode = "c
   const [newTagName, setNewTagName] = useState("");
   const [newTagColor, setNewTagColor] = useState("#3B82F6");
 
+  // File attachments state
+  const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
+  const [loadingAttachments, setLoadingAttachments] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 생성 모드에서 업로드된 파일 (아직 태스크에 연결되지 않음)
+  const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
+
   // 색상 옵션
   const colorOptions = [
     { value: "#3B82F6", label: "파란색" },
@@ -70,6 +102,129 @@ export default function TaskModal({ isOpen, onClose, onSave, onDelete, mode = "c
       fetchTags();
     }
   }, [isOpen, workspaceType, ownerId]);
+
+  // 첨부파일 불러오기
+  useEffect(() => {
+    if (isOpen && initialData?.id) {
+      fetchAttachments(initialData.id);
+    } else {
+      setAttachments([]);
+    }
+  }, [isOpen, initialData?.id]);
+
+  const fetchAttachments = async (taskId: number) => {
+    setLoadingAttachments(true);
+    try {
+      const response = await fetch(`/api/tasks/attachments?task_id=${taskId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setAttachments(data.attachments || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch attachments:", error);
+    } finally {
+      setLoadingAttachments(false);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !workspaceType || !ownerId) return;
+
+    setUploadingFile(true);
+    setUploadError(null);
+
+    try {
+      const uploadFormData = new FormData();
+      uploadFormData.append("file", file);
+      uploadFormData.append("owner_type", workspaceType);
+      uploadFormData.append("owner_id", String(ownerId));
+
+      // 기존 태스크에 첨부하는 경우에만 task_id 추가
+      if (initialData?.id) {
+        uploadFormData.append("task_id", String(initialData.id));
+      }
+
+      const response = await fetch("/api/files/upload", {
+        method: "POST",
+        body: uploadFormData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setUploadError(data.error || "파일 업로드에 실패했습니다.");
+        return;
+      }
+
+      if (initialData?.id) {
+        // 기존 태스크인 경우 첨부파일 목록 새로고침
+        await fetchAttachments(initialData.id);
+      } else {
+        // 새 태스크인 경우 pendingFiles에 추가
+        setPendingFiles(prev => [...prev, {
+          file_id: data.file.file_id,
+          original_name: data.file.original_name,
+          file_path: data.file.file_path,
+          file_size: data.file.file_size,
+          file_size_formatted: data.file.file_size_formatted,
+          mime_type: data.file.mime_type,
+        }]);
+      }
+
+      // 파일 입력 초기화
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    } catch (error) {
+      console.error("File upload error:", error);
+      setUploadError("파일 업로드 중 오류가 발생했습니다.");
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
+  const handleRemovePendingFile = async (fileId: number) => {
+    // 파일 삭제 (DB + 물리적 파일)
+    try {
+      await fetch(`/api/files?id=${fileId}`, { method: "DELETE" });
+      setPendingFiles(prev => prev.filter(f => f.file_id !== fileId));
+    } catch (error) {
+      console.error("Failed to delete pending file:", error);
+    }
+  };
+
+  const handleDeleteAttachment = async (attachmentId: number, fileId: number) => {
+    if (!confirm("첨부파일을 삭제하시겠습니까?")) return;
+
+    try {
+      const response = await fetch(
+        `/api/tasks/attachments?attachment_id=${attachmentId}&delete_file=true`,
+        { method: "DELETE" }
+      );
+
+      if (response.ok) {
+        setAttachments(prev => prev.filter(a => a.attachment_id !== attachmentId));
+      } else {
+        const data = await response.json();
+        alert(data.error || "첨부파일 삭제에 실패했습니다.");
+      }
+    } catch (error) {
+      console.error("Delete attachment error:", error);
+      alert("첨부파일 삭제 중 오류가 발생했습니다.");
+    }
+  };
+
+  const getFileIcon = (mimeType: string | null) => {
+    if (!mimeType) return "📄";
+    if (mimeType.startsWith("image/")) return "🖼️";
+    if (mimeType.includes("pdf")) return "📕";
+    if (mimeType.includes("word") || mimeType.includes("document")) return "📝";
+    if (mimeType.includes("excel") || mimeType.includes("spreadsheet")) return "📊";
+    if (mimeType.includes("powerpoint") || mimeType.includes("presentation")) return "📽️";
+    if (mimeType.includes("zip") || mimeType.includes("rar") || mimeType.includes("7z")) return "📦";
+    return "📄";
+  };
 
   const fetchTags = async () => {
     if (!workspaceType || !ownerId) return;
@@ -126,6 +281,9 @@ export default function TaskModal({ isOpen, onClose, onSave, onDelete, mode = "c
       });
       setErrors({});
       setCurrentMode("create");
+      setAttachments([]);
+      setPendingFiles([]);
+      setUploadError(null);
     }
   }, [isOpen, initialData, mode]);
 
@@ -169,21 +327,29 @@ export default function TaskModal({ isOpen, onClose, onSave, onDelete, mode = "c
     });
   };
 
-  // Convert UTC time from server to local time for datetime-local input display
+  // DB에서 가져온 datetime을 datetime-local input 형식으로 변환
+  // 타임존 변환 없이 그대로 표시 (저장된 시간 = 표시되는 시간)
   const formatDateTimeLocal = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const offset = date.getTimezoneOffset();
-    const localDate = new Date(date.getTime() - offset * 60 * 1000);
-    return localDate.toISOString().slice(0, 16);
-  };
+    if (!dateStr) return '';
 
-  // Convert local datetime-local value to UTC ISO string for API
-  const localToUTC = (localDateTimeString: string) => {
-    if (!localDateTimeString) return localDateTimeString;
-    // datetime-local input gives us "YYYY-MM-DDTHH:mm" in local time
-    // new Date() interprets this as local time, toISOString() converts to UTC
-    const date = new Date(localDateTimeString);
-    return date.toISOString();
+    // MySQL datetime 형식 (2026-02-09 18:26:00) 또는 ISO 형식 처리
+    // Date 객체를 사용하면 타임존 변환이 발생하므로 문자열 직접 파싱
+    const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+    if (match) {
+      const [, year, month, day, hours, minutes] = match;
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    }
+
+    // 그 외 형식은 Date 객체 사용 (폴백)
+    const date = new Date(dateStr);
+    if (Number.isNaN(date.getTime())) return '';
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
   const formatDateTimeDisplay = (dateStr: string) => {
@@ -220,14 +386,18 @@ export default function TaskModal({ isOpen, onClose, onSave, onDelete, mode = "c
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validate()) {
-      // Convert local times to UTC ISO strings before sending to API
+      // Send datetime-local values directly (YYYY-MM-DDTHH:mm format)
+      // No timezone conversion - store exactly what user selected
       const dataToSave = {
         ...formData,
-        start_time: localToUTC(formData.start_time),
-        end_time: localToUTC(formData.end_time),
+        start_time: formData.start_time,
+        end_time: formData.end_time,
+        // 생성 모드에서 업로드된 파일 ID들 추가
+        file_ids: pendingFiles.map(f => f.file_id),
       };
       console.log("Submitting task with formData:", dataToSave);
       console.log("tag_ids being submitted:", dataToSave.tag_ids);
+      console.log("file_ids being submitted:", dataToSave.file_ids);
       onSave(dataToSave);
     }
   };
@@ -375,6 +545,42 @@ export default function TaskModal({ isOpen, onClose, onSave, onDelete, mode = "c
                 {t("noContent") || "내용이 없습니다"}
               </div>
             )}
+
+            {/* 첨부파일 */}
+            <div className="mt-4">
+              <h3 className="text-sm font-medium text-subtle-foreground mb-2">
+                첨부파일
+              </h3>
+              {loadingAttachments ? (
+                <p className="text-sm text-muted-foreground">불러오는 중...</p>
+              ) : attachments.length > 0 ? (
+                <div className="space-y-2">
+                  {attachments.map((att) => (
+                    <div
+                      key={att.attachment_id}
+                      className="flex items-center justify-between p-2 bg-muted/50 rounded-lg"
+                    >
+                      <a
+                        href={att.file_path}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-sm text-foreground hover:text-blue-600 truncate flex-1"
+                      >
+                        <span>{getFileIcon(att.mime_type)}</span>
+                        <span className="truncate">{att.original_name}</span>
+                        <span className="text-xs text-muted-foreground flex-shrink-0">
+                          ({att.file_size_formatted})
+                        </span>
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground italic">
+                  첨부된 파일이 없습니다
+                </p>
+              )}
+            </div>
           </div>
 
           {/* 버튼 */}
@@ -647,6 +853,130 @@ export default function TaskModal({ isOpen, onClose, onSave, onDelete, mode = "c
                 )}
               </div>
             )}
+          </div>
+
+          {/* 첨부파일 */}
+          <div>
+            <label className="mb-1 block text-sm font-medium text-subtle-foreground">
+              첨부파일
+            </label>
+
+            {/* 기존 태스크의 첨부파일 목록 (수정 모드) */}
+            {initialData?.id && (
+              loadingAttachments ? (
+                <p className="text-sm text-muted-foreground mb-2">불러오는 중...</p>
+              ) : attachments.length > 0 ? (
+                <div className="space-y-2 mb-3">
+                  {attachments.map((att) => (
+                    <div
+                      key={att.attachment_id}
+                      className="flex items-center justify-between p-2 bg-muted/50 rounded-lg group"
+                    >
+                      <a
+                        href={att.file_path}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-sm text-foreground hover:text-blue-600 truncate flex-1"
+                      >
+                        <span>{getFileIcon(att.mime_type)}</span>
+                        <span className="truncate">{att.original_name}</span>
+                        <span className="text-xs text-muted-foreground flex-shrink-0">
+                          ({att.file_size_formatted})
+                        </span>
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteAttachment(att.attachment_id, att.file_id)}
+                        className="ml-2 p-1 text-muted-foreground hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="삭제"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground italic mb-2">
+                  첨부된 파일이 없습니다
+                </p>
+              )
+            )}
+
+            {/* 생성 모드에서 업로드된 파일 목록 (pendingFiles) */}
+            {!initialData?.id && pendingFiles.length > 0 && (
+              <div className="space-y-2 mb-3">
+                {pendingFiles.map((file) => (
+                  <div
+                    key={file.file_id}
+                    className="flex items-center justify-between p-2 bg-muted/50 rounded-lg group"
+                  >
+                    <div className="flex items-center gap-2 text-sm text-foreground truncate flex-1">
+                      <span>{getFileIcon(file.mime_type)}</span>
+                      <span className="truncate">{file.original_name}</span>
+                      <span className="text-xs text-muted-foreground flex-shrink-0">
+                        ({file.file_size_formatted})
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemovePendingFile(file.file_id)}
+                      className="ml-2 p-1 text-muted-foreground hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="삭제"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* 파일 업로드 (생성/수정 모드 모두 가능) */}
+            <div className="space-y-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                onChange={handleFileUpload}
+                disabled={uploadingFile}
+                className="hidden"
+                id="file-upload"
+              />
+              <label
+                htmlFor="file-upload"
+                className={`flex items-center justify-center gap-2 w-full rounded-lg border-2 border-dashed border-border px-4 py-3 text-sm font-medium transition-colors cursor-pointer ${
+                  uploadingFile
+                    ? "bg-muted/50 text-muted-foreground cursor-not-allowed"
+                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                }`}
+              >
+                {uploadingFile ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    업로드 중...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    파일 첨부
+                  </>
+                )}
+              </label>
+              {uploadError && (
+                <p className="text-xs text-red-600">{uploadError}</p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                이미지, 문서, 압축 파일을 업로드할 수 있습니다.
+              </p>
+            </div>
+
           </div>
 
           {/* 버튼 */}

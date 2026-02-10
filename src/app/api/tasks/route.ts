@@ -7,6 +7,7 @@ import {
   deleteTask
 } from "@/lib/task";
 import { checkWorkspaceAccess } from "@/lib/workspace";
+import { attachFileToTask } from "@/lib/task-attachment";
 
 // GET /api/tasks?workspace_id={id}&page=1&limit=20&sort_by=start_time&sort_order=DESC&status=TODO&search=keyword
 export async function GET(request: NextRequest) {
@@ -71,7 +72,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, start_time, end_time, content, status, workspace_id, color, tag_ids } = body;
+    const { title, start_time, end_time, content, status, workspace_id, color, tag_ids, file_ids } = body;
 
     // 유효성 검사
     if (!title || !start_time || !end_time || !workspace_id) {
@@ -111,6 +112,13 @@ export async function POST(request: NextRequest) {
       member_id: user.memberId,
       workspace_id: Number(workspace_id),
     });
+
+    // 첨부파일 연결 (file_ids가 있는 경우)
+    if (file_ids && Array.isArray(file_ids) && file_ids.length > 0) {
+      for (const fileId of file_ids) {
+        await attachFileToTask(taskId, fileId, user.memberId);
+      }
+    }
 
     return NextResponse.json(
       { success: true, taskId },

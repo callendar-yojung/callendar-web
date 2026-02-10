@@ -177,6 +177,46 @@ CREATE TABLE tags (
 );
 ```
 
+### 파일 (files)
+```sql
+CREATE TABLE files (
+  file_id        bigint PRIMARY KEY AUTO_INCREMENT,
+  owner_type     ENUM('team', 'personal') NOT NULL,  -- 소유 타입
+  owner_id       bigint NOT NULL,                     -- team_id 또는 member_id
+  original_name  varchar(255) NOT NULL,               -- 원본 파일명
+  stored_name    varchar(255) NOT NULL,               -- 저장된 파일명 (UUID)
+  file_path      varchar(500) NOT NULL,               -- 저장 경로
+  file_size      bigint NOT NULL,                     -- 파일 크기 (bytes)
+  mime_type      varchar(100),                        -- MIME 타입
+  uploaded_by    bigint NOT NULL,                     -- 업로더 member_id
+  created_at     datetime
+);
+```
+
+### 태스크 첨부파일 (task_attachments)
+```sql
+CREATE TABLE task_attachments (
+  attachment_id  bigint PRIMARY KEY AUTO_INCREMENT,
+  task_id        bigint NOT NULL,
+  file_id        bigint NOT NULL,
+  created_at     datetime,
+  created_by     bigint NOT NULL,                     -- 첨부한 member_id
+  UNIQUE KEY unique_task_file (task_id, file_id)     -- 중복 첨부 방지
+);
+```
+
+### 저장소 사용량 (storage_usage)
+```sql
+CREATE TABLE storage_usage (
+  owner_type       ENUM('team', 'personal') NOT NULL,
+  owner_id         bigint NOT NULL,
+  used_bytes       bigint NOT NULL DEFAULT 0,
+  file_count       int NOT NULL DEFAULT 0,
+  updated_at       datetime,
+  PRIMARY KEY (owner_type, owner_id)
+);
+```
+
 ## 환경 변수 (.env.local)
 ```env
 # NextAuth
@@ -322,6 +362,7 @@ export async function GET(request: NextRequest) {
 - [x] 태스크 CRUD (추가/수정/삭제)
 - [x] 태스크 목록 조회 (DB 연동)
 - [x] 태스크 모달 (보기/수정/생성 모드)
+- [x] 태스크 파일 첨부 (업로드/삭제/다운로드)
 - [x] 캘린더 날짜별 태스크 개수 표시 (DB 연동)
 - [x] 팀 CRUD (생성/조회/수정/삭제)
 - [x] 워크스페이스 CRUD (생성/조회/수정/삭제)
@@ -329,6 +370,8 @@ export async function GET(request: NextRequest) {
 - [x] JWT 인증 (외부 앱용) + NextAuth 세션 (웹용)
 - [x] 외부 카카오 로그인 API (데스크탑/모바일)
 - [x] 외부 구글 로그인 API (데스크탑/모바일)
+- [x] 파일 업로드 API (개인/팀 저장소 지원)
+- [x] 저장소 용량 관리 (플랜별 제한, 사용량 추적)
 
 ### TODO
 - [ ] 태스크 상태 변경 (TODO, IN_PROGRESS, DONE)
@@ -479,7 +522,34 @@ export async function GET(request: NextRequest) {
   - Query: `id` (required)
   - Returns: `{ message: string }`
 
-### Files (파일 관리)
+### Files Upload (파일 업로드)
+- `POST /api/files/upload` - 파일 업로드
+  - Content-Type: `multipart/form-data`
+  - Body:
+    - `file` (required) - 업로드할 파일
+    - `owner_type` (required) - "team" | "personal"
+    - `owner_id` (required) - team_id 또는 member_id
+    - `task_id` (optional) - 태스크에 바로 첨부할 경우
+  - Returns: `{ success: true, file: FileRecord }`
+  - Error (400): 파일 타입 미허용 또는 필수 필드 누락
+  - Error (403): 저장소 용량 초과 `{ error, used_bytes, limit_bytes, max_file_size_bytes }`
+  - 허용 파일 타입: 이미지(jpeg, png, gif, webp, svg), 문서(pdf, word, excel, ppt), 텍스트(plain, csv, md), 압축(zip, rar, 7z)
+
+### Task Attachments (태스크 첨부파일)
+- `GET /api/tasks/attachments?task_id={taskId}` - 태스크 첨부파일 목록
+  - Query: `task_id` (required)
+  - Returns: `{ attachments: TaskAttachmentWithFile[] }`
+- `POST /api/tasks/attachments` - 태스크에 파일 첨부
+  - Body: `{ task_id: number, file_id: number }`
+  - Returns: `{ success: true, attachment_id: number }`
+- `DELETE /api/tasks/attachments?attachment_id={id}` - 첨부 삭제 (attachment_id 기준)
+  - Query: `attachment_id` (required)
+  - Returns: `{ success: boolean }`
+- `DELETE /api/tasks/attachments?task_id={id}&file_id={id}&delete_file={boolean}` - 첨부 삭제
+  - Query: `task_id`, `file_id` (required), `delete_file` (optional, 파일도 함께 삭제할지)
+  - Returns: `{ success: boolean }`
+
+### Files (파일 관리 - 레거시)
 - `GET /api/files?team_id={teamId}` - 팀의 모든 파일 조회
   - Query: `team_id` (required)
   - Returns: `File[]`
@@ -548,7 +618,64 @@ interface Subscription {
 }
 ```
 
-### File
+### FileRecord (신규)
+```typescript
+interface FileRecord {
+  file_id: number;
+  owner_type: "team" | "personal";
+  owner_id: number;
+  original_name: string;
+  stored_name: string;
+  file_path: string;
+  file_size: number;        // bytes
+  mime_type: string | null;
+  uploaded_by: number;
+  created_at: Date;
+}
+```
+
+### TaskAttachment
+```typescript
+interface TaskAttachment {
+  attachment_id: number;
+  task_id: number;
+  file_id: number;
+  created_at: Date;
+  created_by: number;
+}
+
+interface TaskAttachmentWithFile extends TaskAttachment {
+  original_name: string;
+  stored_name: string;
+  file_path: string;
+  file_size: number;
+  file_size_formatted: string;  // "1.5 MB" 형태
+  mime_type: string | null;
+}
+```
+
+### StorageUsage (신규)
+```typescript
+interface StorageUsage {
+  owner_type: "team" | "personal";
+  owner_id: number;
+  used_bytes: number;
+  file_count: number;
+  updated_at: Date;
+}
+
+interface StorageLimitInfo {
+  owner_type: "team" | "personal";
+  owner_id: number;
+  used_bytes: number;
+  limit_bytes: number;
+  file_count: number;
+  max_file_size_bytes: number;
+  plan_name: string;
+}
+```
+
+### File (레거시)
 ```typescript
 interface File {
   id: number;
@@ -559,7 +686,7 @@ interface File {
 }
 ```
 
-### TeamStorageUsage
+### TeamStorageUsage (레거시)
 ```typescript
 interface TeamStorageUsage {
   team_id: number;
@@ -570,22 +697,33 @@ interface TeamStorageUsage {
 
 ## 저장소 관리 시스템
 
-### 동작 방식
-1. **파일 생성 시**: 
-   - 저장소 용량 체크 (`checkStorageLimit`)
-   - 용량 초과 시 403 에러 반환
-   - 파일 생성과 동시에 `team_storage_usage` 증가 (트랜잭션)
+### 통합 저장소 (개인/팀 지원)
+- `owner_type`: "team" | "personal"
+- `owner_id`: team_id 또는 member_id
+- 바이트 단위 정밀 추적
 
-2. **파일 삭제 시**: 
-   - 파일 삭제와 동시에 `team_storage_usage` 차감 (트랜잭션)
+### 동작 방식
+1. **파일 업로드 시**:
+   - `canUploadFile()` 함수로 용량 체크 (단일 파일 크기 + 총 저장소 용량)
+   - 용량 초과 시 403 에러 반환
+   - 파일 생성과 동시에 `storage_usage` 증가 (트랜잭션)
+
+2. **파일 삭제 시**:
+   - 파일 삭제와 동시에 `storage_usage` 차감 (트랜잭션)
 
 3. **저장소 재계산**:
-   - 실제 파일 크기 합계를 계산하여 동기화
+   - `recalculateStorageUsage()` 함수로 실제 파일 크기 합계 동기화
    - 데이터 불일치 시 사용
 
-### 구독 플랜별 용량 제한
-- 플랜의 `max_storage_mb` 필드로 제한
-- 활성 구독이 없으면 기본 1GB (1000MB)
+### 플랜별 용량 제한
+| 플랜 | 총 저장소 | 단일 파일 |
+|------|-----------|-----------|
+| Basic | 500MB | 5MB |
+| Pro | 5GB | 25MB |
+| Team | 50GB | 100MB |
+| Enterprise | 500GB | 500MB |
+
+- 활성 구독이 없으면 **Basic** 플랜 적용 (500MB / 5MB)
 
 ## 라이브러리 함수
 
@@ -606,17 +744,35 @@ interface TeamStorageUsage {
 - `deleteSubscription(subscriptionId)` - 구독 삭제
 
 ### File 관련 (`src/lib/file.ts`)
-- `getFilesByTeamId(teamId)` - 팀의 모든 파일 조회
+- `createFileRecord(data)` - 파일 레코드 생성 (저장소 사용량 자동 증가)
 - `getFileById(fileId)` - 파일 조회
-- `createFile(teamId, fileName, fileSizeMb)` - 파일 생성 (저장소 사용량 자동 증가)
-- `updateFile(fileId, fileName)` - 파일 이름 수정
-- `deleteFile(fileId)` - 파일 삭제 (저장소 사용량 자동 차감)
-- `getTotalFileSizeByTeamId(teamId)` - 팀의 총 파일 크기 조회
+- `getFilesByOwner(ownerType, ownerId)` - 소유자별 파일 목록 조회
+- `getFilesByUploader(uploadedBy)` - 업로더별 파일 목록 조회
+- `deleteFileRecord(fileId)` - 파일 삭제 (저장소 사용량 자동 차감)
+- `updateFileName(fileId, originalName)` - 파일 이름 수정
+- `getTotalFileSize(ownerType, ownerId)` - 소유자별 총 파일 크기 조회
+- `getFileCount(ownerType, ownerId)` - 소유자별 파일 개수 조회
+- 레거시 호환: `getFilesByTeamId()`, `createFile()`, `updateFile()`, `deleteFile()`, `getTotalFileSizeByTeamId()`
+
+### Task Attachment 관련 (`src/lib/task-attachment.ts`)
+- `attachFileToTask(taskId, fileId, createdBy)` - 태스크에 파일 첨부
+- `getTaskAttachments(taskId)` - 태스크 첨부파일 목록 (파일 정보 포함)
+- `detachFileFromTask(taskId, fileId)` - 첨부 연결 해제
+- `deleteTaskAttachment(attachmentId)` - 첨부 삭제 (ID 기준)
+- `detachAllFilesFromTask(taskId)` - 태스크의 모든 첨부 해제
+- `getTasksWithFile(fileId)` - 파일이 첨부된 태스크 목록
+- `getTaskAttachmentCount(taskId)` - 첨부파일 개수
+- `isFileAttachedToTask(taskId, fileId)` - 첨부 여부 확인
 
 ### Storage 관련 (`src/lib/storage.ts`)
-- `getStorageUsageByTeamId(teamId)` - 저장소 사용량 조회
-- `initializeStorageUsage(teamId)` - 저장소 사용량 초기화
-- `updateStorageUsage(teamId, usedStorageMb)` - 저장소 사용량 수정
-- `recalculateStorageUsage(teamId)` - 저장소 사용량 재계산 (실제 파일 크기 합계)
-- `checkStorageLimit(teamId, additionalMb)` - 용량 추가 가능 여부 확인
-- `deleteStorageUsage(teamId)` - 저장소 사용량 삭제
+- `getStorageUsage(ownerType, ownerId)` - 저장소 사용량 조회
+- `initializeStorageUsage(ownerType, ownerId)` - 저장소 사용량 초기화
+- `increaseStorageUsage(ownerType, ownerId, bytes)` - 사용량 증가
+- `decreaseStorageUsage(ownerType, ownerId, bytes)` - 사용량 감소
+- `recalculateStorageUsage(ownerType, ownerId)` - 사용량 재계산
+- `getActivePlanForOwner(ownerType, ownerId)` - 활성 플랜 조회 (없으면 Basic)
+- `getStorageLimitInfo(ownerType, ownerId)` - 저장소 한도 정보
+- `canUploadFile(ownerType, ownerId, fileSizeBytes)` - 업로드 가능 여부 확인
+- `deleteStorageUsage(ownerType, ownerId)` - 저장소 사용량 삭제
+- 레거시 호환: `getStorageUsageByTeamId()`, `checkStorageLimit()`
+- 유틸리티: `bytesToMB()`, `mbToBytes()`, `formatBytes()`

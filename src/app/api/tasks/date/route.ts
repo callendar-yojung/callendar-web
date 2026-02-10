@@ -3,7 +3,7 @@ import { getAuthUser } from "@/lib/auth-helper";
 import { getTasksByDate } from "@/lib/task";
 import { checkWorkspaceAccess } from "@/lib/workspace";
 
-// GET /api/tasks/date?workspace_id={id}&date={YYYY-MM-DD}&tz_offset={minutes}
+// GET /api/tasks/date?workspace_id={id}&date={YYYY-MM-DD}
 export async function GET(request: NextRequest) {
   try {
     const user = await getAuthUser(request);
@@ -14,7 +14,6 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const workspaceId = searchParams.get("workspace_id");
     const date = searchParams.get("date");
-    const tzOffset = searchParams.get("tz_offset"); // Minutes offset from UTC (e.g., -540 for UTC+9)
 
     if (!workspaceId || !date) {
       return NextResponse.json(
@@ -33,10 +32,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Parse timezone offset (default to 0 if not provided)
-    const timezoneOffsetMinutes = tzOffset ? parseInt(tzOffset, 10) : 0;
-
-    const tasks = await getTasksByDate(Number(workspaceId), date, timezoneOffsetMinutes);
+    const tasks = await getTasksByDate(Number(workspaceId), date);
     return NextResponse.json({ tasks });
   } catch (error) {
     console.error("Failed to fetch tasks by date:", error);

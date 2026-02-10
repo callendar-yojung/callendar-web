@@ -1,16 +1,52 @@
 import pool from "./db";
 import type { RowDataPacket, ResultSetHeader } from "mysql2/promise";
 
+/**
+ * datetime-local 또는 ISO 8601 string을 MySQL datetime 형식으로 변환
+ *
+ * 입력 형식:
+ * - datetime-local: "2026-02-09T18:26" (16자) 또는 "2026-02-09T18:26:00" (19자)
+ * - MySQL datetime: "2026-02-09 18:26:00"
+ * - ISO 8601: "2026-02-09T09:26:00.000Z" (Z 또는 +00:00 타임존 포함)
+ *
+ * 출력: "2026-02-09 18:26:00" (MySQL datetime 형식)
+ *
+ * 중요: 타임존 변환 없이 문자열에서 직접 파싱하여 사용자가 선택한 시간 그대로 저장
+ */
+function toMySQLDatetime(dateTimeString: string): string {
+  if (!dateTimeString) return dateTimeString;
+
+  // 이미 MySQL datetime 형식인 경우 ("YYYY-MM-DD HH:mm:ss")
+  const mysqlMatch = dateTimeString.match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/);
+  if (mysqlMatch) {
+    return dateTimeString;
+  }
+
+  // datetime-local 또는 ISO 8601 형식 파싱 (타임존 정보 무시하고 시간값만 추출)
+  // "2026-02-09T18:26" (16자)
+  // "2026-02-09T18:26:00" (19자)
+  // "2026-02-09T18:26:00.000Z" (24자)
+  // "2026-02-09T18:26:00+09:00" (25자)
+  const match = dateTimeString.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/);
+  if (match) {
+    const [, year, month, day, hours, minutes, seconds = '00'] = match;
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  }
+
+  // 그 외 형식은 그대로 반환
+  return dateTimeString;
+}
+
 export interface Task {
   id: number;
   title: string;
-  start_time: Date;
-  end_time: Date;
+  start_time: string;  // MySQL datetime string: "2026-02-09 18:26:00"
+  end_time: string;    // MySQL datetime string: "2026-02-09 18:26:00"
   content: string | null;
   status: "TODO" | "IN_PROGRESS" | "DONE";
   color?: string;
-  created_at: Date;
-  updated_at: Date;
+  created_at: string;
+  updated_at: string;
   created_by: number;
   updated_by: number;
   workspace_id: number;
@@ -43,8 +79,8 @@ export async function createTask(data: CreateTaskData): Promise<number> {
        VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW(), ?, ?, ?)`,
       [
         data.title,
-        data.start_time,
-        data.end_time,
+        toMySQLDatetime(data.start_time),
+        toMySQLDatetime(data.end_time),
         data.content || null,
         data.status || "TODO",
         data.color || "#3B82F6",
@@ -234,11 +270,11 @@ export async function updateTask(
     }
     if (data.start_time) {
       updates.push('start_time = ?');
-      values.push(data.start_time);
+      values.push(toMySQLDatetime(data.start_time));
     }
     if (data.end_time) {
       updates.push('end_time = ?');
-      values.push(data.end_time);
+      values.push(toMySQLDatetime(data.end_time));
     }
     if (data.content !== undefined) {
       updates.push('content = ?');
@@ -342,23 +378,15 @@ export async function getTaskCountsByMonth(
 /**
  * 특정 날짜의 태스크 목록 조회 (워크스페이스 기반)
  * @param workspaceId - 워크스페이스 ID
- * @param date - 조회할 날짜 (YYYY-MM-DD, 사용자 로컬 시간 기준)
- * @param timezoneOffsetMinutes - 사용자 타임존 오프셋 (분 단위, UTC 기준, e.g., -540 for UTC+9)
+ * @param date - 조회할 날짜 (YYYY-MM-DD)
  */
 export async function getTasksByDate(
   workspaceId: number,
-  date: string,
-  timezoneOffsetMinutes: number = 0
+  date: string
 ): Promise<Task[]> {
-  // Calculate the UTC time range for the user's local date
-  // timezoneOffsetMinutes is negative for timezones ahead of UTC (e.g., -540 for UTC+9)
-  // So we add the offset to convert local time to UTC
-  const localDateStart = new Date(`${date}T00:00:00`);
-  const localDateEnd = new Date(`${date}T23:59:59.999`);
-
-  // Convert local time to UTC by adding the offset
-  const utcStart = new Date(localDateStart.getTime() + timezoneOffsetMinutes * 60 * 1000);
-  const utcEnd = new Date(localDateEnd.getTime() + timezoneOffsetMinutes * 60 * 1000);
+  // start_time is stored as user's local time, so we can query by date directly
+  const dateStart = `${date} 00:00:00`;
+  const dateEnd = `${date} 23:59:59`;
 
   const [rows] = await pool.query<RowDataPacket[]>(
     `SELECT
@@ -373,7 +401,7 @@ export async function getTasksByDate(
        AND t.start_time >= ?
        AND t.start_time <= ?
      ORDER BY t.start_time ASC`,
-    [workspaceId, utcStart, utcEnd]
+    [workspaceId, dateStart, dateEnd]
   );
 
   // 태스크별로 그룹화하여 태그 배열 생성
@@ -421,17 +449,12 @@ export async function getTasksByDate(
 export async function getTasksWithTitlesByMonth(
   workspaceId: number,
   year: number,
-  month: number,
-  timezoneOffsetMinutes: number = 0
-): Promise<{ date: string; tasks: { id: number; title: string; start_time: Date; end_time: Date }[] }[]> {
-  // Calculate the UTC time range for the user's local month
-  const localMonthStart = new Date(year, month - 1, 1, 0, 0, 0);
+  month: number
+): Promise<{ date: string; tasks: { id: number; title: string; start_time: string; end_time: string }[] }[]> {
+  // start_time is stored as user's local time, so we can query by date directly
   const lastDay = new Date(year, month, 0).getDate();
-  const localMonthEnd = new Date(year, month - 1, lastDay, 23, 59, 59, 999);
-
-  // Convert local time to UTC
-  const utcStart = new Date(localMonthStart.getTime() + timezoneOffsetMinutes * 60 * 1000);
-  const utcEnd = new Date(localMonthEnd.getTime() + timezoneOffsetMinutes * 60 * 1000);
+  const monthStart = `${year}-${String(month).padStart(2, '0')}-01 00:00:00`;
+  const monthEnd = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')} 23:59:59`;
 
   const [rows] = await pool.query<RowDataPacket[]>(
     `SELECT
@@ -444,15 +467,13 @@ export async function getTasksWithTitlesByMonth(
        AND t.start_time >= ?
        AND t.start_time <= ?
      ORDER BY t.start_time ASC`,
-    [workspaceId, utcStart, utcEnd]
+    [workspaceId, monthStart, monthEnd]
   );
 
-  // Group by local date
+  // Group by date (start_time is already stored as user's local time)
   const grouped = rows.reduce((acc: any, row: any) => {
-    // Convert UTC start_time to user's local date for grouping
-    const startTimeUTC = new Date(row.start_time);
-    const localTime = new Date(startTimeUTC.getTime() - timezoneOffsetMinutes * 60 * 1000);
-    const dateStr = localTime.toISOString().split('T')[0];
+    // start_time is "YYYY-MM-DD HH:mm:ss" format - extract date part
+    const dateStr = row.start_time.split(' ')[0];
 
     if (!acc[dateStr]) {
       acc[dateStr] = [];
@@ -468,6 +489,56 @@ export async function getTasksWithTitlesByMonth(
 
   return Object.entries(grouped).map(([date, tasks]) => ({
     date,
-    tasks: tasks as { id: number; title: string; start_time: Date; end_time: Date }[]
+    tasks: tasks as { id: number; title: string; start_time: string; end_time: string }[]
   }));
+}
+
+/**
+ * 워크스페이스의 이번 달 태스크 통계 조회
+ */
+export async function getTaskStatsByWorkspace(
+  workspaceId: number
+): Promise<{
+  tasksCreated: number;
+  tasksCompleted: number;
+  tasksTodo: number;
+  tasksInProgress: number;
+}> {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const monthStart = `${year}-${String(month).padStart(2, '0')}-01 00:00:00`;
+  const lastDay = new Date(year, month, 0).getDate();
+  const monthEnd = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')} 23:59:59`;
+
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT
+      COUNT(*) as tasksCreated,
+      SUM(CASE WHEN status = 'DONE' THEN 1 ELSE 0 END) as tasksCompleted,
+      SUM(CASE WHEN status = 'TODO' THEN 1 ELSE 0 END) as tasksTodo,
+      SUM(CASE WHEN status = 'IN_PROGRESS' THEN 1 ELSE 0 END) as tasksInProgress
+     FROM tasks
+     WHERE workspace_id = ?
+       AND created_at >= ?
+       AND created_at <= ?`,
+    [workspaceId, monthStart, monthEnd]
+  );
+
+  return {
+    tasksCreated: Number(rows[0]?.tasksCreated || 0),
+    tasksCompleted: Number(rows[0]?.tasksCompleted || 0),
+    tasksTodo: Number(rows[0]?.tasksTodo || 0),
+    tasksInProgress: Number(rows[0]?.tasksInProgress || 0),
+  };
+}
+
+/**
+ * 워크스페이스의 전체 태스크 수 조회
+ */
+export async function getTotalTaskCount(workspaceId: number): Promise<number> {
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT COUNT(*) as total FROM tasks WHERE workspace_id = ?`,
+    [workspaceId]
+  );
+  return Number(rows[0]?.total || 0);
 }

@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
 import {
   getStorageUsageByTeamId,
-  initializeStorageUsage,
+  initializeStorageUsageForTeam,
   updateStorageUsage,
-  recalculateStorageUsage,
+  recalculateStorageUsageForTeam,
   checkStorageLimit,
-  deleteStorageUsage,
+  deleteStorageUsageForTeam,
 } from "@/lib/storage";
 
 // GET /api/storage?team_id=1 - 팀의 저장소 사용량 조회
@@ -63,12 +63,12 @@ export async function POST(request: NextRequest) {
     const teamId = Number(team_id);
 
     if (action === "recalculate") {
-      const recalculatedSize = await recalculateStorageUsage(teamId);
+      const recalculatedSize = await recalculateStorageUsageForTeam(teamId);
       const storageUsage = await getStorageUsageByTeamId(teamId);
       return NextResponse.json({ ...storageUsage, recalculated_size: recalculatedSize });
     }
 
-    await initializeStorageUsage(teamId);
+    await initializeStorageUsageForTeam(teamId);
     const storageUsage = await getStorageUsageByTeamId(teamId);
     return NextResponse.json(storageUsage);
   } catch (error) {
@@ -129,7 +129,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "team_id is required" }, { status: 400 });
     }
 
-    const success = await deleteStorageUsage(Number(teamIdParam));
+    const success = await deleteStorageUsageForTeam(Number(teamIdParam));
     if (!success) {
       return NextResponse.json({ error: "Storage usage not found" }, { status: 404 });
     }

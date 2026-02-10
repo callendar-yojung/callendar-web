@@ -18,6 +18,7 @@ const navItems = [
 	{ key: "overview", href: "/dashboard", icon: "📊" },
 	{ key: "tasks", href: "/dashboard/tasks", icon: "✅" },
 	{ key: "calendar", href: "/dashboard/calendar", icon: "📅" },
+	{ key: "files", href: "/dashboard/files", icon: "📁" },
 ];
 
 // Sidebar width constraints
