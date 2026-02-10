@@ -23,8 +23,11 @@ const ALLOWED_TYPES = [
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "application/vnd.ms-powerpoint",
   "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/haansofthwp", // 한글(HWP) MIME 타입
+  "application/x-hwp",       // 일부 브라우저에서 전송하는 타입
   // 텍스트
   "text/plain",
+  "text/plain; charset=utf-8", // 한글 텍스트 포함
   "text/csv",
   "text/markdown",
   // 압축
@@ -32,7 +35,6 @@ const ALLOWED_TYPES = [
   "application/x-rar-compressed",
   "application/x-7z-compressed",
 ];
-
 // POST /api/files/upload
 export async function POST(request: NextRequest) {
   try {

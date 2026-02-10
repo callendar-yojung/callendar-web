@@ -2,19 +2,23 @@ import {
   S3Client,
   PutObjectCommand,
   DeleteObjectCommand,
-  GetObjectCommand,
 } from "@aws-sdk/client-s3";
 
-// S3 클라이언트 초기화
-const s3Client = new S3Client({
-  region: process.env.AWS_REGION || "ap-northeast-2",
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
-  },
-});
+// S3 클라이언트 (lazy initialization)
+let s3ClientInstance: S3Client | null = null;
 
-const BUCKET_NAME = process.env.AWS_S3_BUCKET || "";
+function getS3Client(): S3Client {
+  if (!s3ClientInstance) {
+    s3ClientInstance = new S3Client({
+      region: process.env.AWS_REGION || "ap-northeast-2",
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
+      },
+    });
+  }
+  return s3ClientInstance;
+}
 
 // S3 사용 가능 여부 체크
 export function isS3Configured(): boolean {
@@ -33,36 +37,48 @@ export async function uploadToS3(
   body: Buffer,
   contentType: string
 ): Promise<string> {
+  if (!isS3Configured()) {
+    throw new Error("S3 is not configured");
+  }
+
+  const bucketName = process.env.AWS_S3_BUCKET || "";
+  const region = process.env.AWS_REGION || "ap-northeast-2";
+
   const command = new PutObjectCommand({
-    Bucket: BUCKET_NAME,
+    Bucket: bucketName,
     Key: key,
     Body: body,
     ContentType: contentType,
   });
 
-  await s3Client.send(command);
+  await getS3Client().send(command);
 
   // 공개 URL 반환 (CloudFront 또는 S3 직접 URL)
-  // CloudFront가 설정되어 있으면 CloudFront URL 사용
   const cloudFrontDomain = process.env.AWS_CLOUDFRONT_DOMAIN;
   if (cloudFrontDomain) {
     return `https://${cloudFrontDomain}/${key}`;
   }
 
   // S3 직접 URL
-  return `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION || "ap-northeast-2"}.amazonaws.com/${key}`;
+  return `https://${bucketName}.s3.${region}.amazonaws.com/${key}`;
 }
 
 /**
  * S3에서 파일 삭제
  */
 export async function deleteFromS3(key: string): Promise<void> {
+  if (!isS3Configured()) {
+    return; // S3가 설정되지 않았으면 무시
+  }
+
+  const bucketName = process.env.AWS_S3_BUCKET || "";
+
   const command = new DeleteObjectCommand({
-    Bucket: BUCKET_NAME,
+    Bucket: bucketName,
     Key: key,
   });
 
-  await s3Client.send(command);
+  await getS3Client().send(command);
 }
 
 /**
@@ -95,5 +111,3 @@ export function extractS3KeyFromUrl(url: string): string | null {
     return null;
   }
 }
-
-export { s3Client, BUCKET_NAME };
