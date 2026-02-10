@@ -5,6 +5,7 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
+  serverExternalPackages: ["@aws-sdk/client-s3"],
   images: {
     remotePatterns: [
       {
