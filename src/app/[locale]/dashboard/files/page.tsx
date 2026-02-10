@@ -237,12 +237,21 @@ export default function FilesPage() {
   };
 
   const getFileUrl = (filePath: string) => {
+    // 이미 전체 URL인 경우 그대로 반환
+    if (filePath.startsWith("http://") || filePath.startsWith("https://")) {
+      return filePath;
+    }
+    // 로컬 경로인 경우 그대로 반환
     if (filePath.startsWith("/uploads/")) {
       return filePath;
     }
+    // 그 외의 경우 (상대 경로) S3 URL 생성
     const bucket = process.env.NEXT_PUBLIC_AWS_S3_BUCKET || "";
     const region = process.env.NEXT_PUBLIC_AWS_REGION || "";
-    return `https://${bucket}.s3.${region}.amazonaws.com${filePath}`;
+    if (bucket && region) {
+      return `https://${bucket}.s3.${region}.amazonaws.com/${filePath}`;
+    }
+    return filePath;
   };
 
   if (workspaceLoading || loading) {
