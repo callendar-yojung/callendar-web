@@ -3,8 +3,24 @@ import { getAuthUser } from "@/lib/auth-helper";
 import { getWorkspaceById, checkWorkspaceAccess } from "@/lib/workspace";
 import { getFilesByOwner, deleteFileRecord, getFileById } from "@/lib/file";
 import type { OwnerType } from "@/lib/storage";
+import { deleteFromS3, extractS3KeyFromUrl, isS3Configured } from "@/lib/s3";
 import { unlink } from "node:fs/promises";
 import path from "node:path";
+
+// 파일 스토리지에서 삭제 (S3 또는 로컬)
+async function deleteFileFromStorage(filePath: string): Promise<void> {
+  if (isS3Configured()) {
+    // S3에서 삭제
+    const s3Key = extractS3KeyFromUrl(filePath);
+    if (s3Key) {
+      await deleteFromS3(s3Key);
+    }
+  } else {
+    // 로컬 파일 시스템에서 삭제
+    const localPath = path.join(process.cwd(), "public", filePath);
+    await unlink(localPath);
+  }
+}
 
 // GET /api/me/files?workspace_id={id}&page={page}&limit={limit}&type={type}
 export async function GET(request: NextRequest) {
@@ -201,12 +217,12 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        // 로컬 파일 시스템에서 파일 삭제 시도
+        // 스토리지에서 파일 삭제 시도 (S3 또는 로컬)
         try {
-          const filePath = path.join(process.cwd(), "public", file.file_path);
-          await unlink(filePath);
-        } catch (fsError) {
-          console.error("Failed to delete file from filesystem:", fsError);
+          await deleteFileFromStorage(file.file_path);
+        } catch (storageError) {
+          console.error("Failed to delete file from storage:", storageError);
+          // 스토리지 삭제 실패해도 DB 레코드는 삭제 진행
         }
 
         // DB에서 파일 레코드 삭제
@@ -292,13 +308,12 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // 로컬 파일 시스템에서 파일 삭제 시도
+    // 스토리지에서 파일 삭제 시도 (S3 또는 로컬)
     try {
-      const filePath = path.join(process.cwd(), "public", file.file_path);
-      await unlink(filePath);
-    } catch (fsError) {
-      console.error("Failed to delete file from filesystem:", fsError);
-      // 파일 삭제 실패해도 DB 레코드는 삭제 진행
+      await deleteFileFromStorage(file.file_path);
+    } catch (storageError) {
+      console.error("Failed to delete file from storage:", storageError);
+      // 스토리지 삭제 실패해도 DB 레코드는 삭제 진행
     }
 
     // DB에서 파일 레코드 삭제

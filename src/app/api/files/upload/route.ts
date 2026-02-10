@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
 import { createFileRecord } from "@/lib/file";
 import { canUploadFile, type OwnerType, formatBytes } from "@/lib/storage";
+import { uploadToS3, generateS3Key, isS3Configured } from "@/lib/s3";
 import { v4 as uuidv4 } from "uuid";
 import { writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
@@ -91,23 +92,34 @@ export async function POST(request: NextRequest) {
     // 파일 저장 경로 생성
     const fileExt = path.extname(file.name);
     const storedName = `${uuidv4()}${fileExt}`;
-    const uploadDir = path.join(
-      process.cwd(),
-      "public",
-      "uploads",
-      ownerType === "team" ? "teams" : "personal",
-      ownerId
-    );
-    const filePath = path.join(uploadDir, storedName);
-    const publicPath = `/uploads/${ownerType === "team" ? "teams" : "personal"}/${ownerId}/${storedName}`;
-
-    // 디렉토리 생성
-    await mkdir(uploadDir, { recursive: true });
-
-    // 파일 저장
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    await writeFile(filePath, buffer);
+
+    let publicPath: string;
+
+    // S3가 설정되어 있으면 S3에 업로드, 아니면 로컬 파일 시스템 사용
+    if (isS3Configured()) {
+      // S3에 업로드
+      const s3Key = generateS3Key(ownerType, Number(ownerId), storedName);
+      publicPath = await uploadToS3(s3Key, buffer, file.type);
+    } else {
+      // 로컬 파일 시스템에 저장 (개발 환경용)
+      const uploadDir = path.join(
+        process.cwd(),
+        "public",
+        "uploads",
+        ownerType === "team" ? "teams" : "personal",
+        ownerId
+      );
+      const filePath = path.join(uploadDir, storedName);
+      publicPath = `/uploads/${ownerType === "team" ? "teams" : "personal"}/${ownerId}/${storedName}`;
+
+      // 디렉토리 생성
+      await mkdir(uploadDir, { recursive: true });
+
+      // 파일 저장
+      await writeFile(filePath, buffer);
+    }
 
     // DB에 파일 레코드 생성
     const fileId = await createFileRecord({
