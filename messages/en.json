@@ -527,7 +527,71 @@
         "addPaymentMethod": "Add Payment Method",
         "history": "Payment History",
         "historyDesc": "View past payment records",
-        "noHistory": "No payment history"
+        "noHistory": "No payment history",
+        "personalSubscription": "Personal Subscription",
+        "personalSubscriptionDesc": "Plan for your personal workspace",
+        "teamComingSoon": "Team subscription is coming soon",
+        "status": "Status",
+        "freePlan": "Free basic plan",
+        "changePlan": "Change Plan",
+        "paymentSuccess": "Payment completed successfully!",
+        "plans": {
+          "personalSection": "Personal Subscription",
+          "personalDesc": "Plan for your personal workspace",
+          "teamComingSoon": "Team subscription is coming soon",
+          "basicPlan": "Basic Plan",
+          "currentPlan": "Current Plan",
+          "select": "Select",
+          "selected": "Selected",
+          "subscribed": "Subscribed",
+          "maxMembers": "Up to {count} team members",
+          "storage": "{size}GB storage",
+          "unlimitedWorkspaces": "Unlimited workspaces",
+          "unlimitedTasks": "Unlimited tasks",
+          "perMonth": "/ month",
+          "changeable": "All plans can be changed anytime",
+          "freeTrial": "7-day free trial included",
+          "back": "← Back",
+          "loadError": "Unable to load plans",
+          "retry": "Retry"
+        },
+        "cancel": {
+          "button": "Cancel Subscription",
+          "title": "Cancel your subscription?",
+          "message": "Canceling will switch you to the Basic (free) plan. Paid features will be unavailable after the current billing period ends.",
+          "confirm": "Confirm Cancellation",
+          "dismiss": "Go Back",
+          "success": "Subscription canceled. You have been switched to the Basic plan.",
+          "error": "Failed to cancel subscription. Please try again.",
+          "canceling": "Canceling..."
+        },
+        "checkout": {
+          "title": "Checkout",
+          "description": "Pay securely for your subscription",
+          "orderSummary": "Order Summary",
+          "subscriptionTarget": "Subscription Target",
+          "personal": "Personal",
+          "team": "Team",
+          "plan": "Plan",
+          "maxMembers": "Max Members",
+          "storage": "Storage",
+          "monthlyPayment": "Monthly Payment",
+          "termsAgree": "I agree to the Terms of Service and Privacy Policy",
+          "securePayment": "All payment information is encrypted and processed securely",
+          "back": "Back",
+          "nicepay": {
+            "title": "Card Payment",
+            "description": "Pay securely with credit/debit card",
+            "button": "Pay with Card",
+            "error": "An error occurred during payment processing",
+            "success": "Payment completed successfully!"
+          },
+          "paypal": {
+            "title": "PayPal",
+            "description": "Pay securely with your PayPal account.",
+            "notConfigured": "PayPal subscription is not configured for this plan. Please contact the administrator."
+          }
+        }
       },
       "usage": {
         "title": "Usage",

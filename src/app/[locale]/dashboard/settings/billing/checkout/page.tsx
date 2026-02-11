@@ -3,7 +3,9 @@
 import { useTranslations } from "next-intl";
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useLocale } from "next-intl";
 import PayPalButton from "@/components/dashboard/PayPalButton";
+import NicePayButton from "@/components/dashboard/NicePayButton";
 
 interface Plan {
   id: number;
@@ -19,13 +21,18 @@ function CheckoutContent() {
   const t = useTranslations("dashboard.settings.billing");
   const router = useRouter();
   const searchParams = useSearchParams();
+  const locale = useLocale();
   const planId = searchParams.get("plan_id");
   const ownerType = searchParams.get("owner_type") as "team" | "personal" | null;
   const ownerId = searchParams.get("owner_id");
+  const nicepayStatus = searchParams.get("nicepay");
+  const nicepayMessage = searchParams.get("message");
 
   const [plan, setPlan] = useState<Plan | null>(null);
   const [loading, setLoading] = useState(true);
   const [ownerName, setOwnerName] = useState<string>("");
+
+  const isKorean = locale === "ko";
 
   useEffect(() => {
     if (planId && ownerType && ownerId) {
@@ -51,12 +58,12 @@ function CheckoutContent() {
       if (type === "personal") {
         const meRes = await fetch("/api/me/account");
         const meData = await meRes.json();
-        setOwnerName(meData.nickname || "개인");
+        setOwnerName(meData.nickname || t("checkout.personal"));
       } else {
         const teamsRes = await fetch("/api/me/teams");
         const teamsData = await teamsRes.json();
         const team = teamsData.teams?.find((t: any) => t.id === id);
-        setOwnerName(team?.name || "팀");
+        setOwnerName(team?.name || t("checkout.team"));
       }
     } catch (error) {
       console.error("Failed to fetch owner info:", error);
@@ -64,13 +71,17 @@ function CheckoutContent() {
   };
 
   const handlePayPalSuccess = () => {
-    alert("PayPal 결제가 완료되었습니다!");
+    alert(t("checkout.nicepay.success"));
     router.push("/dashboard/settings/billing");
   };
 
   const handlePayPalError = (error: any) => {
     console.error("PayPal Error:", error);
-    alert("PayPal 결제 처리 중 오류가 발생했습니다.");
+    alert(t("checkout.nicepay.error"));
+  };
+
+  const handleNicePayError = (errorMsg: string) => {
+    console.error("NicePay Error:", errorMsg);
   };
 
   if (loading || !plan || !ownerType || !ownerId) {
@@ -90,32 +101,45 @@ function CheckoutContent() {
             onClick={() => router.back()}
             className="mb-4 text-sm text-muted-foreground hover:text-foreground"
           >
-            ← Back
+            &larr; {t("checkout.back")}
           </button>
-          <h1 className="text-3xl font-bold text-foreground">PayPal로 결제하기</h1>
+          <h1 className="text-3xl font-bold text-foreground">
+            {t("checkout.title")}
+          </h1>
           <p className="mt-2 text-muted-foreground">
-            PayPal 계정으로 안전하게 결제하실 수 있습니다
+            {t("checkout.description")}
           </p>
         </div>
+
+        {/* NicePay 결제 실패 메시지 */}
+        {nicepayStatus === "failed" && nicepayMessage && (
+          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <p className="text-sm text-red-800 dark:text-red-200">
+              {nicepayMessage}
+            </p>
+          </div>
+        )}
 
         <div className="grid gap-6 lg:grid-cols-3">
           {/* 주문 요약 */}
           <div className="lg:col-span-1">
             <div className="rounded-lg border border-border bg-card p-6">
               <h2 className="text-lg font-semibold text-card-foreground">
-                주문 요약
+                {t("checkout.orderSummary")}
               </h2>
               <div className="mt-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">구독 대상</span>
+                  <span className="text-sm text-muted-foreground">
+                    {t("checkout.subscriptionTarget")}
+                  </span>
                   <div className="flex items-center gap-2">
                     {ownerType === "personal" ? (
                       <span className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 px-2 py-1 rounded-full">
-                        개인
+                        {t("checkout.personal")}
                       </span>
                     ) : (
                       <span className="text-xs bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 px-2 py-1 rounded-full">
-                        팀
+                        {t("checkout.team")}
                       </span>
                     )}
                     <span className="text-sm font-medium text-foreground">
@@ -124,22 +148,24 @@ function CheckoutContent() {
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">플랜</span>
+                  <span className="text-sm text-muted-foreground">
+                    {t("checkout.plan")}
+                  </span>
                   <span className="font-semibold text-foreground">
                     {plan.name}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">
-                    최대 멤버
+                    {t("checkout.maxMembers")}
                   </span>
                   <span className="text-sm text-foreground">
-                    {plan.max_members}명
+                    {plan.max_members}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">
-                    저장소
+                    {t("checkout.storage")}
                   </span>
                   <span className="text-sm text-foreground">
                     {(plan.max_storage_mb / 1000).toFixed(1)}GB
@@ -148,65 +174,75 @@ function CheckoutContent() {
                 <div className="border-t border-border pt-3">
                   <div className="flex items-center justify-between">
                     <span className="font-semibold text-foreground">
-                      월 결제액
+                      {t("checkout.monthlyPayment")}
                     </span>
                     <span className="text-xl font-bold text-foreground">
-                      ₩{plan.price.toLocaleString()}
+                      {isKorean
+                        ? `\u20A9${plan.price.toLocaleString()}`
+                        : `$${plan.price.toLocaleString()}`}
                     </span>
                   </div>
                 </div>
-                {plan.paypal_plan_id && (
-                  <div className="pt-3 border-t border-border">
-                    <div className="flex items-center gap-2">
-                      <span className="text-blue-500">🅿️</span>
-                      <span className="text-xs text-muted-foreground">
-                        PayPal 구독 플랜 연동됨
-                      </span>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           </div>
 
-          {/* PayPal 결제 */}
+          {/* 결제 수단 */}
           <div className="lg:col-span-2">
             <div className="space-y-6">
               <div className="rounded-lg border border-border bg-card p-6">
-                <div className="mb-6 flex items-center justify-center">
-                  <div className="flex items-center gap-3">
-                    <span className="text-4xl">🅿️</span>
-                    <h2 className="text-2xl font-semibold text-card-foreground">
-                      PayPal
-                    </h2>
-                  </div>
-                </div>
+                {isKorean ? (
+                  <>
+                    {/* NicePay 카드 결제 */}
+                    <div className="mb-6 flex items-center justify-center">
+                      <h2 className="text-2xl font-semibold text-card-foreground">
+                        {t("checkout.nicepay.title")}
+                      </h2>
+                    </div>
 
-                <p className="text-sm text-muted-foreground mb-6 text-center">
-                  PayPal 계정으로 안전하게 구독 결제하실 수 있습니다.
-                </p>
-
-                {!plan.paypal_plan_id && (
-                  <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                    <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                      ⚠️ 이 플랜은 아직 PayPal 구독이 설정되지 않았습니다. 관리자에게 문의하세요.
+                    <p className="text-sm text-muted-foreground mb-6 text-center">
+                      {t("checkout.nicepay.description")}
                     </p>
-                  </div>
-                )}
 
-                {plan ? (
-                  <PayPalButton
-                    planId={plan.id}
-                    paypalPlanId={plan.paypal_plan_id}
-                    ownerId={Number(ownerId)}
-                    ownerType={ownerType}
-                    onSuccess={handlePayPalSuccess}
-                    onError={handlePayPalError}
-                  />
+                    <NicePayButton
+                      planId={plan.id}
+                      amount={plan.price}
+                      goodsName={`Pecal ${plan.name}`}
+                      ownerId={Number(ownerId)}
+                      ownerType={ownerType}
+                      onError={handleNicePayError}
+                    />
+                  </>
                 ) : (
-                  <div className="text-center text-muted-foreground">
-                    플랜 정보를 불러오는 중...
-                  </div>
+                  <>
+                    {/* PayPal */}
+                    <div className="mb-6 flex items-center justify-center">
+                      <h2 className="text-2xl font-semibold text-card-foreground">
+                        {t("checkout.paypal.title")}
+                      </h2>
+                    </div>
+
+                    <p className="text-sm text-muted-foreground mb-6 text-center">
+                      {t("checkout.paypal.description")}
+                    </p>
+
+                    {!plan.paypal_plan_id && (
+                      <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                        <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                          {t("checkout.paypal.notConfigured")}
+                        </p>
+                      </div>
+                    )}
+
+                    <PayPalButton
+                      planId={plan.id}
+                      paypalPlanId={plan.paypal_plan_id}
+                      ownerId={Number(ownerId)}
+                      ownerType={ownerType}
+                      onSuccess={handlePayPalSuccess}
+                      onError={handlePayPalError}
+                    />
+                  </>
                 )}
               </div>
 
@@ -215,21 +251,21 @@ function CheckoutContent() {
                 <div className="flex items-start">
                   <input
                     type="checkbox"
-                    id="terms-paypal"
+                    id="terms"
                     required
                     className="mt-1 h-4 w-4 rounded border-border text-blue-600 focus:ring-blue-500"
                   />
                   <label
-                    htmlFor="terms-paypal"
+                    htmlFor="terms"
                     className="ml-2 text-sm text-muted-foreground"
                   >
-                    이용약관 및 개인정보 처리방침에 동의합니다
+                    {t("checkout.termsAgree")}
                   </label>
                 </div>
               </div>
 
               <p className="text-center text-xs text-muted-foreground">
-                🔒 모든 결제 정보는 암호화되어 안전하게 처리됩니다
+                {t("checkout.securePayment")}
               </p>
             </div>
           </div>

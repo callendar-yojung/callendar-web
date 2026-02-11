@@ -528,7 +528,71 @@
         "addPaymentMethod": "결제 수단 추가",
         "history": "결제 내역",
         "historyDesc": "과거 결제 내역을 확인합니다",
-        "noHistory": "결제 내역이 없습니다"
+        "noHistory": "결제 내역이 없습니다",
+        "personalSubscription": "개인 구독 플랜",
+        "personalSubscriptionDesc": "개인 워크스페이스를 위한 플랜",
+        "teamComingSoon": "팀 구독 기능은 준비 중입니다",
+        "status": "상태",
+        "freePlan": "기본 무료 플랜",
+        "changePlan": "플랜 변경",
+        "paymentSuccess": "결제가 성공적으로 완료되었습니다!",
+        "plans": {
+          "personalSection": "개인 구독",
+          "personalDesc": "나의 개인 워크스페이스를 위한 플랜",
+          "teamComingSoon": "팀 구독 기능은 준비 중입니다",
+          "basicPlan": "기본 플랜",
+          "currentPlan": "현재 플랜",
+          "select": "선택하기",
+          "selected": "선택됨",
+          "subscribed": "가입중",
+          "maxMembers": "최대 {count}명의 팀 멤버",
+          "storage": "{size}GB 저장소",
+          "unlimitedWorkspaces": "무제한 워크스페이스",
+          "unlimitedTasks": "무제한 태스크",
+          "perMonth": "/ 월",
+          "changeable": "모든 플랜은 언제든지 변경 가능합니다",
+          "freeTrial": "7일 무료 체험 기간이 제공됩니다",
+          "back": "← 뒤로",
+          "loadError": "플랜을 불러올 수 없습니다",
+          "retry": "다시 시도"
+        },
+        "cancel": {
+          "button": "구독 취소",
+          "title": "구독을 취소하시겠습니까?",
+          "message": "구독을 취소하면 Basic(무료) 플랜으로 전환됩니다. 현재 결제 기간이 끝나면 유료 기능을 사용할 수 없습니다.",
+          "confirm": "취소 확인",
+          "dismiss": "돌아가기",
+          "success": "구독이 취소되었습니다. Basic 플랜으로 전환되었습니다.",
+          "error": "구독 취소에 실패했습니다. 다시 시도해주세요.",
+          "canceling": "취소 처리 중..."
+        },
+        "checkout": {
+          "title": "결제하기",
+          "description": "안전하게 결제하실 수 있습니다",
+          "orderSummary": "주문 요약",
+          "subscriptionTarget": "구독 대상",
+          "personal": "개인",
+          "team": "팀",
+          "plan": "플랜",
+          "maxMembers": "최대 멤버",
+          "storage": "저장소",
+          "monthlyPayment": "월 결제액",
+          "termsAgree": "이용약관 및 개인정보 처리방침에 동의합니다",
+          "securePayment": "모든 결제 정보는 암호화되어 안전하게 처리됩니다",
+          "back": "뒤로",
+          "nicepay": {
+            "title": "카드 결제",
+            "description": "신용카드/체크카드로 안전하게 결제하세요",
+            "button": "카드로 결제하기",
+            "error": "결제 처리 중 오류가 발생했습니다",
+            "success": "결제가 완료되었습니다!"
+          },
+          "paypal": {
+            "title": "PayPal",
+            "description": "PayPal 계정으로 안전하게 구독 결제하실 수 있습니다.",
+            "notConfigured": "이 플랜은 아직 PayPal 구독이 설정되지 않았습니다. 관리자에게 문의하세요."
+          }
+        }
       },
       "usage": {
         "title": "사용량",

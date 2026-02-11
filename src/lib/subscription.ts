@@ -90,7 +90,8 @@ export async function getSubscriptionById(
 export async function createSubscription(
   ownerId: number,
   ownerType: OwnerType,
-  planId: number
+  planId: number,
+  createdBy?: number
 ): Promise<number> {
   const connection = await pool.getConnection();
   try {
@@ -106,9 +107,9 @@ export async function createSubscription(
 
     // 새 구독 생성
     const [result] = await connection.execute<ResultSetHeader>(
-      `INSERT INTO subscriptions (owner_id, owner_type, plan_id, status, started_at)
-       VALUES (?, ?, ?, 'ACTIVE', NOW())`,
-      [ownerId, ownerType, planId]
+      `INSERT INTO subscriptions (owner_id, owner_type, plan_id, status, started_at, created_by)
+       VALUES (?, ?, ?, 'ACTIVE', NOW(), ?)`,
+      [ownerId, ownerType, planId, createdBy ?? ownerId]
     );
 
     await connection.commit();

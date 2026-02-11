@@ -24,7 +24,8 @@ export async function POST(request: NextRequest) {
     const localSubscriptionId = await createSubscription(
       Number(owner_id),
       owner_type,
-      Number(plan_id)
+      Number(plan_id),
+      user.memberId
     );
 
     return NextResponse.json({
