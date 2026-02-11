@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 interface Plan {
   id: number;
@@ -26,7 +26,6 @@ interface Subscription {
 export default function BillingPage() {
   const t = useTranslations("dashboard.settings.billing");
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [personalSubscription, setPersonalSubscription] =
     useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
@@ -47,14 +46,12 @@ export default function BillingPage() {
   }, []);
 
   useEffect(() => {
-    if (searchParams.get("nicepay") === "success") {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("nicepay") === "success") {
       setShowPaymentSuccess(true);
-      // URL에서 query param 제거
-      const url = new URL(window.location.href);
-      url.searchParams.delete("nicepay");
-      window.history.replaceState({}, "", url.pathname);
+      window.history.replaceState({}, "", window.location.pathname);
     }
-  }, [searchParams]);
+  }, []);
 
   const fetchCurrentSubscription = async () => {
     try {
