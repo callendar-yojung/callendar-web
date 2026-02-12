@@ -246,3 +246,15 @@ INSERT INTO admins (username, password, name, email, role, created_at) VALUES
 ON DUPLICATE KEY UPDATE username=username;
 
 
+CREATE TABLE billing_keys (                           
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,           
+    member_id BIGINT NOT NULL,                          
+    bid VARCHAR(50) NOT NULL,
+    card_code VARCHAR(10),                              
+    card_name VARCHAR(50),
+    card_no_masked VARCHAR(20),
+    status ENUM('ACTIVE','REMOVED') DEFAULT
+  'ACTIVE',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,  
+    INDEX idx_member_status (member_id, status)     
+  );
