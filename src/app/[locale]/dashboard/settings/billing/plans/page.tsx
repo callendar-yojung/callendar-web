@@ -44,14 +44,17 @@ export default function PlansPage() {
     try {
       // 플랜 목록 가져오기
       const plansRes = await fetch("/api/plans");
-      const plansData = await plansRes.json();
-
-      if (Array.isArray(plansData) && plansData.length > 0) {
-        setPlans(plansData);
-      } else {
-        await createDefaultPlans();
+      if (!plansRes.ok) {
+        console.error("Failed to fetch plans:", plansRes.status);
         return;
       }
+      const plansData = await plansRes.json();
+
+      if (!Array.isArray(plansData) || plansData.length === 0) {
+        return;
+      }
+
+      setPlans(plansData);
 
       // 현재 사용자 정보 가져오기
       const meRes = await fetch("/api/me/account");
@@ -85,33 +88,6 @@ export default function PlansPage() {
     } catch (error) {
       console.error("Failed to fetch data:", error);
     } finally {
-      setLoading(false);
-    }
-  };
-
-  const createDefaultPlans = async () => {
-    const defaultPlansData = [
-      { name: "Basic", price: 0, max_members: 5, max_storage_mb: 1000 },
-      { name: "Team", price: 8000, max_members: 50, max_storage_mb: 10000 },
-      {
-        name: "Enterprise",
-        price: 20000,
-        max_members: 999,
-        max_storage_mb: 100000,
-      },
-    ];
-
-    try {
-      for (const plan of defaultPlansData) {
-        await fetch("/api/plans", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(plan),
-        });
-      }
-      await fetchData();
-    } catch (error) {
-      console.error("Failed to create default plans:", error);
       setLoading(false);
     }
   };
