@@ -166,7 +166,7 @@
   "privacyPolicy": {
     "title": "Privacy Policy",
     "lastUpdated": "Last Updated: February 6, 2026",
-    "intro": "Pecal (the 'Company') values your privacy and complies with relevant laws including the Personal Information Protection Act. This Privacy Policy explains what personal information we collect, how we use it, how long we retain it, and how we dispose of it when you use our services.",
+    "intro": "yojung (the 'Company') values your privacy and complies with relevant laws including the Personal Information Protection Act. This Privacy Policy explains what personal information we collect, how we use it, how long we retain it, and how we dispose of it when you use our services.",
     "backToHome": "Back to Home",
 
     "section1": {
@@ -525,6 +525,12 @@
         "paymentMethodDesc": "Manage payment cards",
         "noPaymentMethod": "No payment method registered",
         "addPaymentMethod": "Add Payment Method",
+        "savedCard": "Saved Card",
+        "cardInfo": "Card Info",
+        "removeCard": "Remove Card",
+        "removeCardConfirm": "Remove the saved card? This card is used for automatic billing.",
+        "removeCardSuccess": "Card has been removed.",
+        "removeCardError": "Failed to remove card. Please try again.",
         "history": "Payment History",
         "historyDesc": "View past payment records",
         "noHistory": "No payment history",
@@ -584,7 +590,24 @@
             "description": "Pay securely with credit/debit card",
             "button": "Pay with Card",
             "error": "An error occurred during payment processing",
-            "success": "Payment completed successfully!"
+            "success": "Payment completed successfully!",
+            "cardNumber": "Card Number",
+            "cardNumberPlaceholder": "0000 0000 0000 0000",
+            "cardNumberError": "Please enter a valid 16-digit card number.",
+            "cardExpiry": "Expiry Date",
+            "expiryPlaceholder": "MM/YY",
+            "expiryError": "Please enter expiry date in MM/YY format.",
+            "cardPassword": "Password",
+            "passwordHint": "First 2 digits of card password",
+            "passwordError": "Please enter first 2 digits of your card password.",
+            "birthDate": "Date of Birth / Business No.",
+            "birthPlaceholder": "YYMMDD or 10-digit business number",
+            "birthHint": "Personal: 6-digit DOB / Business: 10-digit registration number",
+            "birthError": "Please enter 6-digit DOB or 10-digit business number.",
+            "subscribing": "Processing payment...",
+            "subscribeButton": "Subscribe & Pay",
+            "registerError": "Failed to register card. Please check your card information.",
+            "approveError": "Payment approval failed."
           },
           "paypal": {
             "title": "PayPal",
@@ -622,6 +645,139 @@
         "thisMonth": "this month",
         "loadError": "Failed to load usage data"
       }
+    }
+  },
+
+  "termsOfService": {
+    "title": "Terms of Service",
+    "lastUpdated": "Last Updated: February 12, 2026",
+    "backToHome": "Back to Home",
+    "intro": "These Terms of Service ('Terms') govern your use of the Pecal service ('Service') provided by yojung ('Company'), and establish the rights, obligations, and responsibilities between the Company and users.",
+
+    "section1": {
+      "title": "Article 1 (Purpose)",
+      "content": "These Terms aim to define the conditions and procedures for using the Pecal service provided by the Company, as well as the rights, obligations, and responsibilities between the Company and users."
+    },
+
+    "section2": {
+      "title": "Article 2 (Definitions)",
+      "items": [
+        "'Service' refers to the Pecal workspace platform and all related services provided by the Company.",
+        "'User' refers to a member who uses the Service in accordance with these Terms.",
+        "'Member' refers to a person who has provided personal information to the Company and entered into a service agreement.",
+        "'Workspace' refers to an independent work area within the Service where users manage tasks, files, projects, etc.",
+        "'Content' refers to all information such as text, images, and files created or uploaded by users within the Service."
+      ]
+    },
+
+    "section3": {
+      "title": "Article 3 (Effectiveness and Amendment of Terms)",
+      "items": [
+        "These Terms take effect when posted on the Service screen or otherwise notified to users.",
+        "The Company may amend these Terms within the scope not violating applicable laws, and will notify users at least 7 days before the effective date with the reason for amendment.",
+        "If a user does not agree to the amended Terms, they may stop using the Service and withdraw.",
+        "Continued use of the Service after the effective date of amended Terms shall be deemed as consent to the changes."
+      ]
+    },
+
+    "section4": {
+      "title": "Article 4 (Service Agreement)",
+      "items": [
+        "The service agreement is established when the user agrees to these Terms and completes the registration process prescribed by the Company.",
+        "The Company supports easy registration through social login (Kakao, Google, etc.).",
+        "The Company may refuse registration or terminate the agreement in the following cases: using another person's information, providing false information, or otherwise interfering with service operations."
+      ]
+    },
+
+    "section5": {
+      "title": "Article 5 (Service Content)",
+      "content": "The services provided by the Company include the following.",
+      "items": [
+        "Task management (create, edit, delete, status management)",
+        "Calendar-based schedule management",
+        "File upload and management",
+        "Team workspace and collaboration features",
+        "Personal and team storage management",
+        "Other services developed or provided through partnerships"
+      ]
+    },
+
+    "section6": {
+      "title": "Article 6 (Service Modification and Suspension)",
+      "items": [
+        "The Company may modify all or part of the Service for improvement purposes.",
+        "The Company may temporarily suspend the Service due to unavoidable circumstances such as natural disasters or system failures.",
+        "The Company will notify users in advance of any service modifications or suspensions. However, in urgent cases, notification may be provided afterward."
+      ]
+    },
+
+    "section7": {
+      "title": "Article 7 (User Obligations)",
+      "items": [
+        "Users must comply with applicable laws and these Terms when using the Service.",
+        "Users must not collect, store, or disclose other people's personal information.",
+        "Users must not engage in illegal activities using the Service.",
+        "Users must not interfere with the stable operation of the Service.",
+        "Users are responsible for managing their account information."
+      ]
+    },
+
+    "section8": {
+      "title": "Article 8 (Paid Services and Payment)",
+      "items": [
+        "The Company may provide paid services (plan subscriptions) in addition to free services.",
+        "Usage fees and payment methods for paid services are specified on the Service's information page.",
+        "Users must pay the applicable fees when using paid services.",
+        "Payment cancellation and refunds are subject to applicable laws and the Company's refund policy.",
+        "Upon subscription cancellation, the Service remains available until the current billing period expires, after which it converts to the free plan."
+      ]
+    },
+
+    "section9": {
+      "title": "Article 9 (Content Rights and Responsibilities)",
+      "items": [
+        "Copyright of content created by users within the Service belongs to the respective users.",
+        "The Company may use user content for purposes of service operation, improvement, and promotion.",
+        "Users must not upload content that infringes on the intellectual property rights of others.",
+        "The Company may delete content that violates applicable laws or infringes on the rights of others without prior notice."
+      ]
+    },
+
+    "section10": {
+      "title": "Article 10 (Privacy Protection)",
+      "content": "The Company collects, uses, and manages users' personal information in accordance with its Privacy Policy. Please refer to the Privacy Policy for details."
+    },
+
+    "section11": {
+      "title": "Article 11 (Disclaimer)",
+      "items": [
+        "The Company is not liable for inability to provide the Service due to force majeure such as natural disasters, wars, or service suspension by telecommunications carriers.",
+        "The Company is not liable for service disruptions caused by the user's own fault.",
+        "The Company is not liable for any expected profits or losses users fail to achieve through the Service.",
+        "The Company has no obligation to intervene in disputes between users or between users and third parties arising through the Service, and is not liable for any resulting damages."
+      ]
+    },
+
+    "section12": {
+      "title": "Article 12 (Termination of Agreement)",
+      "items": [
+        "Users may terminate the agreement (withdraw) at any time through the settings menu within the Service.",
+        "The Company may terminate the agreement after prior notice if a user violates these Terms. However, in urgent cases, notification may be provided afterward.",
+        "Upon termination, the user's personal information and content will be handled in accordance with the Privacy Policy."
+      ]
+    },
+
+    "section13": {
+      "title": "Article 13 (Dispute Resolution)",
+      "items": [
+        "In case of disputes between the Company and users regarding the use of the Service, both parties shall negotiate in good faith for an amicable resolution.",
+        "If negotiation fails, the laws of the Republic of Korea shall govern, and jurisdiction shall be determined in accordance with the Civil Procedure Act."
+      ]
+    },
+
+    "section14": {
+      "title": "Supplementary Provisions",
+      "content": "These Terms take effect from February 12, 2026."
     }
   }
 }

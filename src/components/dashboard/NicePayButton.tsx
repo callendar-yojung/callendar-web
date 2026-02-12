@@ -1,24 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
-declare global {
-  interface Window {
-    AUTHNICE?: {
-      requestPay: (options: NicePayRequestOptions) => void;
-    };
-  }
-}
-
-interface NicePayRequestOptions {
-  clientId: string;
-  method: string;
-  orderId: string;
-  amount: number;
-  goodsName: string;
-  returnUrl: string;
-  fnError: (result: { errorMsg: string }) => void;
-}
+import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 interface NicePayButtonProps {
   planId: number;
@@ -27,6 +10,7 @@ interface NicePayButtonProps {
   ownerId: number;
   ownerType: "team" | "personal";
   onError?: (error: string) => void;
+  onSuccess?: () => void;
 }
 
 export default function NicePayButton({
@@ -36,103 +20,206 @@ export default function NicePayButton({
   ownerId,
   ownerType,
   onError,
+  onSuccess,
 }: NicePayButtonProps) {
-  const [loading, setLoading] = useState(true);
-  const [sdkReady, setSdkReady] = useState(false);
+  const t = useTranslations("dashboard.settings.billing.checkout.nicepay");
+
+  const [cardNo, setCardNo] = useState("");
+  const [expiry, setExpiry] = useState("");
+  const [cardPw, setCardPw] = useState("");
+  const [idNo, setIdNo] = useState("");
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const existingScript = document.querySelector(
-      'script[data-nicepay-sdk]'
-    );
-    if (existingScript) {
-      setLoading(false);
-      setSdkReady(true);
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.setAttribute("data-nicepay-sdk", "true");
-    script.src = "https://pay.nicepay.co.kr/v1/js/";
-    script.async = true;
-
-    script.onload = () => {
-      setLoading(false);
-      setSdkReady(true);
-    };
-
-    script.onerror = () => {
-      setLoading(false);
-      setError("NicePay SDK를 불러오는데 실패했습니다.");
-      onError?.("NicePay SDK 로드 실패");
-    };
-
-    document.body.appendChild(script);
-
-    return () => {
-      if (document.body.contains(script)) {
-        document.body.removeChild(script);
-      }
-    };
-  }, [onError]);
-
-  const handlePayment = () => {
-    if (!window.AUTHNICE) {
-      setError("NicePay SDK가 준비되지 않았습니다.");
-      return;
-    }
-
-    const clientId = process.env.NEXT_PUBLIC_NICEPAY_CLIENT_ID;
-    if (!clientId) {
-      setError("NicePay Client ID가 설정되지 않았습니다.");
-      return;
-    }
-
-    const timestamp = Date.now();
-    const orderId = `PECAL_${planId}_${ownerId}_${timestamp}`;
-
-    const returnUrl = `${window.location.origin}/api/nicepay/approve?plan_id=${planId}&owner_id=${ownerId}&owner_type=${ownerType}`;
-
-    window.AUTHNICE.requestPay({
-      clientId,
-      method: "card",
-      orderId,
-      amount,
-      goodsName,
-      returnUrl,
-      fnError: (result) => {
-        setError(result.errorMsg);
-        onError?.(result.errorMsg);
-      },
-    });
+  const formatCardNumber = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 16);
+    const parts = digits.match(/.{1,4}/g);
+    return parts ? parts.join(" ") : digits;
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-muted-foreground">결제 모듈 로딩 중...</div>
-      </div>
-    );
-  }
+  const formatExpiry = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 4);
+    if (digits.length >= 3) {
+      return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+    }
+    return digits;
+  };
 
-  if (error) {
-    return (
-      <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-        <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
-      </div>
-    );
-  }
+  const handleCardNoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCardNo(formatCardNumber(e.target.value));
+  };
+
+  const handleExpiryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setExpiry(formatExpiry(e.target.value));
+  };
+
+  const handleCardPwChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCardPw(e.target.value.replace(/\D/g, "").slice(0, 2));
+  };
+
+  const handleIdNoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setIdNo(e.target.value.replace(/\D/g, "").slice(0, 10));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    try {
+      const rawCardNo = cardNo.replace(/\s/g, "");
+      const [expMonth, expYear] = expiry.split("/");
+
+      if (rawCardNo.length !== 16) {
+        throw new Error(t("cardNumberError"));
+      }
+      if (!expMonth || !expYear || expMonth.length !== 2 || expYear.length !== 2) {
+        throw new Error(t("expiryError"));
+      }
+      if (cardPw.length !== 2) {
+        throw new Error(t("passwordError"));
+      }
+      if (idNo.length !== 6 && idNo.length !== 10) {
+        throw new Error(t("birthError"));
+      }
+
+      const response = await fetch("/api/nicepay/billing/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cardNo: rawCardNo,
+          expYear,
+          expMonth,
+          idNo,
+          cardPw,
+          planId,
+          ownerId,
+          ownerType,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || t("registerError"));
+      }
+
+      onSuccess?.();
+    } catch (err: any) {
+      const message = err.message || t("registerError");
+      setError(message);
+      onError?.(message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="w-full">
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-900/20">
+          <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+        </div>
+      )}
+
+      {/* 카드번호 */}
+      <div>
+        <label
+          htmlFor="cardNo"
+          className="mb-1 block text-sm font-medium text-foreground"
+        >
+          {t("cardNumber")}
+        </label>
+        <input
+          id="cardNo"
+          type="text"
+          inputMode="numeric"
+          placeholder={t("cardNumberPlaceholder")}
+          value={cardNo}
+          onChange={handleCardNoChange}
+          disabled={loading}
+          className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
+          autoComplete="cc-number"
+        />
+      </div>
+
+      {/* 유효기간 + 비밀번호 앞2자리 */}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label
+            htmlFor="expiry"
+            className="mb-1 block text-sm font-medium text-foreground"
+          >
+            {t("cardExpiry")}
+          </label>
+          <input
+            id="expiry"
+            type="text"
+            inputMode="numeric"
+            placeholder={t("expiryPlaceholder")}
+            value={expiry}
+            onChange={handleExpiryChange}
+            disabled={loading}
+            className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
+            autoComplete="cc-exp"
+          />
+        </div>
+        <div>
+          <label
+            htmlFor="cardPw"
+            className="mb-1 block text-sm font-medium text-foreground"
+          >
+            {t("cardPassword")}
+          </label>
+          <input
+            id="cardPw"
+            type="password"
+            inputMode="numeric"
+            placeholder="**"
+            value={cardPw}
+            onChange={handleCardPwChange}
+            disabled={loading}
+            className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
+            autoComplete="off"
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            {t("passwordHint")}
+          </p>
+        </div>
+      </div>
+
+      {/* 생년월일 / 사업자번호 */}
+      <div>
+        <label
+          htmlFor="idNo"
+          className="mb-1 block text-sm font-medium text-foreground"
+        >
+          {t("birthDate")}
+        </label>
+        <input
+          id="idNo"
+          type="text"
+          inputMode="numeric"
+          placeholder={t("birthPlaceholder")}
+          value={idNo}
+          onChange={handleIdNoChange}
+          disabled={loading}
+          className="w-full rounded-lg border border-border bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
+          autoComplete="off"
+        />
+        <p className="mt-1 text-xs text-muted-foreground">
+          {t("birthHint")}
+        </p>
+      </div>
+
+      {/* 결제 버튼 */}
       <button
-        type="button"
-        onClick={handlePayment}
-        disabled={!sdkReady}
+        type="submit"
+        disabled={loading}
         className="w-full rounded-lg bg-blue-600 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        카드로 결제하기
+        {loading ? t("subscribing") : t("subscribeButton")}
       </button>
-    </div>
+    </form>
   );
 }

@@ -23,6 +23,14 @@ interface Subscription {
   plan_price?: number;
 }
 
+interface SavedCard {
+  id: number;
+  cardCode: string;
+  cardName: string;
+  cardNoMasked: string;
+  createdAt: string;
+}
+
 export default function BillingPage() {
   const t = useTranslations("dashboard.settings.billing");
   const router = useRouter();
@@ -41,8 +49,14 @@ export default function BillingPage() {
   // NicePay 결제 성공 배너
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
 
+  // 저장된 카드 정보
+  const [savedCard, setSavedCard] = useState<SavedCard | null>(null);
+  const [removingCard, setRemovingCard] = useState(false);
+  const [showRemoveCardConfirm, setShowRemoveCardConfirm] = useState(false);
+
   useEffect(() => {
     fetchCurrentSubscription();
+    fetchBillingKey();
   }, []);
 
   useEffect(() => {
@@ -91,6 +105,38 @@ export default function BillingPage() {
       console.error("Failed to fetch subscription:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchBillingKey = async () => {
+    try {
+      const res = await fetch("/api/nicepay/billing/register");
+      const data = await res.json();
+      if (data.billingKey) {
+        setSavedCard(data.billingKey);
+      }
+    } catch (error) {
+      console.error("Failed to fetch billing key:", error);
+    }
+  };
+
+  const handleRemoveCard = async () => {
+    setRemovingCard(true);
+    try {
+      const res = await fetch("/api/nicepay/billing/remove", {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setSavedCard(null);
+        setShowRemoveCardConfirm(false);
+        setCancelMessage({ type: "success", text: t("removeCardSuccess") });
+      } else {
+        setCancelMessage({ type: "error", text: t("removeCardError") });
+      }
+    } catch {
+      setCancelMessage({ type: "error", text: t("removeCardError") });
+    } finally {
+      setRemovingCard(false);
     }
   };
 
@@ -365,17 +411,77 @@ export default function BillingPage() {
           {t("paymentMethodDesc")}
         </p>
 
-        <div className="mt-6 rounded-lg border-2 border-dashed border-border p-8 text-center">
-          <p className="text-sm text-muted-foreground">
-            {t("noPaymentMethod")}
-          </p>
-          <button
-            type="button"
-            className="mt-4 rounded-lg border border-border px-4 py-2 text-sm font-medium text-card-foreground transition-colors hover:bg-accent"
-          >
-            {t("addPaymentMethod")}
-          </button>
-        </div>
+        {savedCard ? (
+          <div className="mt-6">
+            <div className="flex items-center justify-between rounded-lg border border-border bg-background p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900">
+                  <svg
+                    className="h-5 w-5 text-blue-600 dark:text-blue-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-medium text-foreground">
+                    {savedCard.cardName || t("savedCard")}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {savedCard.cardNoMasked}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowRemoveCardConfirm(true)}
+                className="rounded-lg border border-red-300 px-3 py-1.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-950"
+              >
+                {t("removeCard")}
+              </button>
+            </div>
+
+            {/* 카드 삭제 확인 */}
+            {showRemoveCardConfirm && (
+              <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950">
+                <p className="text-sm text-red-700 dark:text-red-300">
+                  {t("removeCardConfirm")}
+                </p>
+                <div className="mt-3 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleRemoveCard}
+                    disabled={removingCard}
+                    className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+                  >
+                    {removingCard ? t("cancel.canceling") : t("removeCard")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowRemoveCardConfirm(false)}
+                    disabled={removingCard}
+                    className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-card-foreground transition-colors hover:bg-accent disabled:opacity-50"
+                  >
+                    {t("cancel.dismiss")}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="mt-6 rounded-lg border-2 border-dashed border-border p-8 text-center">
+            <p className="text-sm text-muted-foreground">
+              {t("noPaymentMethod")}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* 결제 내역 */}

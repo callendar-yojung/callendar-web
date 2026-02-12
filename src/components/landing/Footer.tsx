@@ -26,7 +26,7 @@ export default function Footer() {
       { name: t("newsroom"), href: "#" },
     ],
     [t("legal")]: [
-      { name: t("terms"), href: "#" },
+      { name: t("terms"), href: "/terms" },
       { name: t("privacy"), href: "/privacy" },
       { name: t("cookies"), href: "#" },
     ],
@@ -40,11 +40,11 @@ export default function Footer() {
             <Link href="/" className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-foreground">
                 <span className="text-sm font-bold text-background">
-                  KD
+                  Pc
                 </span>
               </div>
               <span className="text-lg font-semibold text-foreground">
-                Kelindor
+                Pecal
               </span>
             </Link>
             <p className="mt-4 max-w-xs text-sm text-muted-foreground">
@@ -105,10 +105,23 @@ export default function Footer() {
             </div>
           ))}
         </div>
-
-        <div className="mt-12 border-t border-border pt-8">
-          <p className="text-center text-sm text-muted-foreground">
-            {t("copyright", { year: new Date().getFullYear() })}
+          <br />
+        <div className="text-center text-xs text-muted-foreground leading-loose">
+          <p className="space-x-2">
+            <span>{t("company-name")}</span> | <span>{t("address")}</span> | <span>{t("owner")}</span> | <span>{t("tel")}</span>
+          </p>
+          <p className="space-x-2">
+            <span>{t("bizNum")}</span>
+            <a href="https://moneypin.biz/bizno/detail/1506300732/" target="_blank" rel="noreferrer" className="underline">
+              [{t("bizCheck")}]
+            </a>
+            | <span>{t("onlineSales")}</span>
+          </p>
+          <p className="space-x-2">
+            <span>{t("privacy-name")}</span> | <span>{t("email")}</span>
+          </p>
+          <p className="mt-2 text-sm">
+            © {new Date().getFullYear()} {t("company")}. {t("allRightsReserved")}
           </p>
         </div>
       </div>
