@@ -76,9 +76,7 @@ export async function PUT(request: NextRequest) {
       name,
       price,
       max_members,
-      max_storage_mb,
-      paypal_plan_id,
-      paypal_product_id
+      max_storage_mb
     );
 
     if (!success) {

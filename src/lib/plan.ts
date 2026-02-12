@@ -7,8 +7,6 @@ export interface Plan {
   price: number;
   max_members: number;
   max_storage_mb: number;
-  paypal_plan_id?: string | null;
-  paypal_product_id?: string | null;
   created_at: Date;
 }
 
@@ -20,8 +18,6 @@ export async function getAllPlans(): Promise<Plan[]> {
       price,
       max_members,
       max_storage_mb,
-      paypal_plan_id,
-      paypal_product_id,
       created_at
     FROM plans
     ORDER BY price ASC`
@@ -37,8 +33,6 @@ export async function getPlanById(planId: number): Promise<Plan | null> {
       price,
       max_members,
       max_storage_mb,
-      paypal_plan_id,
-      paypal_product_id,
       created_at
     FROM plans
     WHERE plan_id = ?`,
@@ -51,14 +45,12 @@ export async function createPlan(
   name: string,
   price: number,
   maxMembers: number,
-  maxStorageMb: number,
-  paypalPlanId?: string,
-  paypalProductId?: string
+  maxStorageMb: number
 ): Promise<number> {
   const [result] = await pool.execute<ResultSetHeader>(
-    `INSERT INTO plans (name, price, max_members, max_storage_mb, paypal_plan_id, paypal_product_id, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, NOW())`,
-    [name, price, maxMembers, maxStorageMb, paypalPlanId || null, paypalProductId || null]
+    `INSERT INTO plans (name, price, max_members, max_storage_mb, created_at)
+     VALUES (?, ?, ?, ?, NOW())`,
+    [name, price, maxMembers, maxStorageMb]
   );
   return result.insertId;
 }
@@ -68,15 +60,13 @@ export async function updatePlan(
   name: string,
   price: number,
   maxMembers: number,
-  maxStorageMb: number,
-  paypalPlanId?: string,
-  paypalProductId?: string
+  maxStorageMb: number
 ): Promise<boolean> {
   const [result] = await pool.execute<ResultSetHeader>(
     `UPDATE plans
-     SET name = ?, price = ?, max_members = ?, max_storage_mb = ?, paypal_plan_id = ?, paypal_product_id = ?
+     SET name = ?, price = ?, max_members = ?, max_storage_mb = ?
      WHERE plan_id = ?`,
-    [name, price, maxMembers, maxStorageMb, paypalPlanId || null, paypalProductId || null, planId]
+    [name, price, maxMembers, maxStorageMb, planId]
   );
   return result.affectedRows > 0;
 }

@@ -76,9 +76,7 @@ export async function POST(request: NextRequest) {
       name,
       price,
       max_members,
-      max_storage_mb,
-      billingPlan.id,
-      product.id
+      max_storage_mb
     );
 
     return NextResponse.json({
