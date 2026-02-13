@@ -19,6 +19,7 @@ interface Subscription {
   plan_id: number;
   status: string;
   started_at: string;
+  next_payment_date?: string | null;
   plan_name?: string;
   plan_price?: number;
 }
@@ -31,12 +32,23 @@ interface SavedCard {
   createdAt: string;
 }
 
+interface PaymentRecord {
+  payment_id: number;
+  amount: number;
+  status: "SUCCESS" | "FAILED" | "REFUNDED";
+  payment_type: "FIRST" | "RECURRING" | "RETRY";
+  plan_name?: string;
+  tid: string | null;
+  created_at: string;
+}
+
 export default function BillingPage() {
   const t = useTranslations("dashboard.settings.billing");
   const router = useRouter();
   const [personalSubscription, setPersonalSubscription] =
     useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
+  const [memberId, setMemberId] = useState<number | null>(null);
 
   // 구독 취소 관련 state
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
@@ -53,6 +65,10 @@ export default function BillingPage() {
   const [savedCard, setSavedCard] = useState<SavedCard | null>(null);
   const [removingCard, setRemovingCard] = useState(false);
   const [showRemoveCardConfirm, setShowRemoveCardConfirm] = useState(false);
+
+  // 결제 이력
+  const [payments, setPayments] = useState<PaymentRecord[]>([]);
+  const [paymentsLoading, setPaymentsLoading] = useState(false);
 
   useEffect(() => {
     fetchCurrentSubscription();
@@ -72,16 +88,19 @@ export default function BillingPage() {
       // 현재 사용자 정보 가져오기
       const meRes = await fetch("/api/me/account");
       const meData = await meRes.json();
-      const memberId = meData.member_id;
+      const currentMemberId = meData.member_id;
+      setMemberId(currentMemberId);
 
       // 개인 활성 구독 조회
       const personalSubRes = await fetch(
-        `/api/subscriptions?owner_id=${memberId}&owner_type=personal&active=true`
+        `/api/subscriptions?owner_id=${currentMemberId}&owner_type=personal&active=true`
       );
       const personalSubData = await personalSubRes.json();
 
       if (personalSubData && personalSubData.plan_id) {
         setPersonalSubscription(personalSubData);
+        // 결제 이력 로드
+        fetchPaymentHistory(currentMemberId);
       } else {
         // 구독이 없으면 Basic 플랜 정보 가져오기
         const plansRes = await fetch("/api/plans");
@@ -91,7 +110,7 @@ export default function BillingPage() {
         if (basicPlan) {
           setPersonalSubscription({
             id: 0,
-            owner_id: memberId,
+            owner_id: currentMemberId,
             owner_type: "personal",
             plan_id: basicPlan.id,
             status: "ACTIVE",
@@ -100,6 +119,8 @@ export default function BillingPage() {
             plan_price: basicPlan.price,
           });
         }
+        // 무료 플랜이라도 이력이 있을 수 있으므로 로드
+        fetchPaymentHistory(currentMemberId);
       }
     } catch (error) {
       console.error("Failed to fetch subscription:", error);
@@ -117,6 +138,23 @@ export default function BillingPage() {
       }
     } catch (error) {
       console.error("Failed to fetch billing key:", error);
+    }
+  };
+
+  const fetchPaymentHistory = async (ownerId: number) => {
+    setPaymentsLoading(true);
+    try {
+      const res = await fetch(
+        `/api/payments?owner_id=${ownerId}&owner_type=personal`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setPayments(data.payments || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch payment history:", error);
+    } finally {
+      setPaymentsLoading(false);
     }
   };
 
@@ -184,6 +222,69 @@ export default function BillingPage() {
       setCancelMessage({ type: "error", text: t("cancel.error") });
     } finally {
       setCanceling(false);
+    }
+  };
+
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString("ko-KR", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+  };
+
+  const formatAmount = (amount: number) => {
+    return `\u20A9${amount.toLocaleString()}`;
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "SUCCESS":
+        return (
+          <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">
+            {t("paymentHistory.success")}
+          </span>
+        );
+      case "FAILED":
+        return (
+          <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900 dark:text-red-200">
+            {t("paymentHistory.failed")}
+          </span>
+        );
+      case "REFUNDED":
+        return (
+          <span className="inline-flex items-center rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+            {t("paymentHistory.refunded")}
+          </span>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const getTypeBadge = (type: string) => {
+    switch (type) {
+      case "FIRST":
+        return (
+          <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+            {t("paymentHistory.first")}
+          </span>
+        );
+      case "RECURRING":
+        return (
+          <span className="inline-flex items-center rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+            {t("paymentHistory.recurring")}
+          </span>
+        );
+      case "RETRY":
+        return (
+          <span className="inline-flex items-center rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-900 dark:text-orange-200">
+            {t("paymentHistory.retry")}
+          </span>
+        );
+      default:
+        return null;
     }
   };
 
@@ -319,6 +420,12 @@ export default function BillingPage() {
             {isPaidSubscription && (
               <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">
                 {t("status")}: {personalSubscription.status}
+              </p>
+            )}
+            {isPaidSubscription && personalSubscription.next_payment_date && (
+              <p className="mt-0.5 text-xs text-blue-600 dark:text-blue-400">
+                {t("nextPaymentDate")}:{" "}
+                {formatDate(personalSubscription.next_payment_date)}
               </p>
             )}
             {!isPaidSubscription && (
@@ -493,9 +600,71 @@ export default function BillingPage() {
           {t("historyDesc")}
         </p>
 
-        <div className="mt-6 rounded-lg border-2 border-dashed border-border p-8 text-center">
-          <p className="text-sm text-muted-foreground">{t("noHistory")}</p>
-        </div>
+        {paymentsLoading ? (
+          <div className="mt-6 flex items-center justify-center rounded-lg border-2 border-dashed border-border p-8">
+            <p className="text-sm text-muted-foreground">
+              {t("historyLoading")}
+            </p>
+          </div>
+        ) : payments.length === 0 ? (
+          <div className="mt-6 rounded-lg border-2 border-dashed border-border p-8 text-center">
+            <p className="text-sm text-muted-foreground">{t("noHistory")}</p>
+          </div>
+        ) : (
+          <div className="mt-6 overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="pb-3 pr-4 font-medium text-muted-foreground">
+                    {t("paymentHistory.date")}
+                  </th>
+                  <th className="pb-3 pr-4 font-medium text-muted-foreground">
+                    {t("paymentHistory.plan")}
+                  </th>
+                  <th className="pb-3 pr-4 font-medium text-muted-foreground">
+                    {t("paymentHistory.amount")}
+                  </th>
+                  <th className="pb-3 pr-4 font-medium text-muted-foreground">
+                    {t("paymentHistory.type")}
+                  </th>
+                  <th className="pb-3 pr-4 font-medium text-muted-foreground">
+                    {t("paymentHistory.status")}
+                  </th>
+                  <th className="pb-3 font-medium text-muted-foreground">
+                    {t("paymentHistory.tid")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {payments.map((payment) => (
+                  <tr
+                    key={payment.payment_id}
+                    className="border-b border-border last:border-0"
+                  >
+                    <td className="py-3 pr-4 text-foreground">
+                      {formatDate(payment.created_at)}
+                    </td>
+                    <td className="py-3 pr-4 text-foreground">
+                      {payment.plan_name || "-"}
+                    </td>
+                    <td className="py-3 pr-4 text-foreground">
+                      {formatAmount(payment.amount)}
+                    </td>
+                    <td className="py-3 pr-4">
+                      {getTypeBadge(payment.payment_type)}
+                    </td>
+                    <td className="py-3 pr-4">
+                      {getStatusBadge(payment.status)}
+                    </td>
+                    <td className="py-3 font-mono text-xs text-muted-foreground">
+                      {payment.tid || "-"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

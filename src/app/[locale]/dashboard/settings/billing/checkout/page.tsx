@@ -80,10 +80,6 @@ function CheckoutContent() {
     alert(t("checkout.nicepay.error"));
   };
 
-  const handleNicePaySuccess = () => {
-    router.push("/dashboard/settings/billing?nicepay=success");
-  };
-
   const handleNicePayError = (errorMsg: string) => {
     console.error("NicePay Error:", errorMsg);
   };
@@ -215,7 +211,6 @@ function CheckoutContent() {
                       ownerId={Number(ownerId)}
                       ownerType={ownerType}
                       onError={handleNicePayError}
-                      onSuccess={handleNicePaySuccess}
                     />
                   </>
                 ) : (

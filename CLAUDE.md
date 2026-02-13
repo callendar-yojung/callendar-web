@@ -217,6 +217,29 @@ CREATE TABLE storage_usage (
 );
 ```
 
+### 결제 이력 (payment_history)
+```sql
+CREATE TABLE payment_history (
+  payment_id       BIGINT AUTO_INCREMENT PRIMARY KEY,
+  subscription_id  BIGINT NOT NULL,
+  owner_id         BIGINT NOT NULL,
+  owner_type       ENUM('team', 'personal') NOT NULL,
+  member_id        BIGINT NOT NULL,
+  plan_id          BIGINT NOT NULL,
+  amount           INT NOT NULL,
+  order_id         VARCHAR(100) NOT NULL,
+  tid              VARCHAR(100) NULL,
+  bid              VARCHAR(50) NOT NULL,
+  status           ENUM('SUCCESS', 'FAILED', 'REFUNDED') NOT NULL,
+  result_code      VARCHAR(10) NULL,
+  result_msg       VARCHAR(500) NULL,
+  payment_type     ENUM('FIRST', 'RECURRING', 'RETRY') NOT NULL,
+  created_at       DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+> **Note**: `subscriptions` 테이블에 `next_payment_date` (DATETIME), `billing_key_member_id` (BIGINT), `retry_count` (INT DEFAULT 0) 컬럼 추가됨 (DDL: `database_update_recurring_billing.sql`)
+
 ## 환경 변수 (.env.local)
 ```env
 # NextAuth
@@ -242,6 +265,9 @@ AWS_REGION=
 AWS_ACCESS_KEY_ID=
 AWS_SECRET_ACCESS_KEY=
 AWS_S3_BUCKET=
+
+# Cron (정기결제 스케쥴러 인증)
+CRON_SECRET=
 ```
 
 ## 인증 시스템
@@ -372,6 +398,11 @@ export async function GET(request: NextRequest) {
 - [x] 외부 구글 로그인 API (데스크탑/모바일)
 - [x] 파일 업로드 API (개인/팀 저장소 지원)
 - [x] 저장소 용량 관리 (플랜별 제한, 사용량 추적)
+- [x] NicePay 빌링키(BID) 기반 자동결제 시스템
+- [x] 정기결제 스케쥴러 (크론 엔드포인트)
+- [x] 결제 이력 추적 (payment_history 테이블)
+- [x] 빌링키 만료 API (카드 삭제 시 NicePay expire 호출)
+- [x] 결제 내역 조회 API + 빌링 페이지 UI (결제 이력 테이블, 다음 결제일 표시)
 
 ### TODO
 - [ ] 태스크 상태 변경 (TODO, IN_PROGRESS, DONE)
@@ -522,6 +553,17 @@ export async function GET(request: NextRequest) {
   - Query: `id` (required)
   - Returns: `{ message: string }`
 
+### Payments (결제 이력)
+- `GET /api/payments?owner_id={id}&owner_type={type}` - 결제 이력 조회
+  - Query: `owner_id` (required), `owner_type` (required: "team" | "personal")
+  - Returns: `{ payments: PaymentRecord[] }`
+
+### Cron (정기결제 스케쥴러)
+- `POST /api/cron/billing` - 정기결제 실행 (외부 크론에서 호출)
+  - Headers: `Authorization: Bearer {CRON_SECRET}`
+  - Returns: `{ success: true, processed: number, results: [...] }`
+  - 동작: 결제일 도래 구독 조회 → 빌링키로 결제 → 이력 기록 → 날짜 연장 (실패 시 최대 3회 재시도 후 구독 만료)
+
 ### Files Upload (파일 업로드)
 - `POST /api/files/upload` - 파일 업로드
   - Content-Type: `multipart/form-data`
@@ -608,11 +650,15 @@ interface Plan {
 ```typescript
 interface Subscription {
   id: number;
-  team_id: number;
+  owner_id: number;
+  owner_type: "team" | "personal";
   plan_id: number;
   status: "ACTIVE" | "CANCELED" | "EXPIRED";
   started_at: Date;
   ended_at: Date | null;
+  next_payment_date: Date | null;
+  billing_key_member_id: number | null;
+  retry_count: number;
   plan_name?: string;
   plan_price?: number;
 }
@@ -651,6 +697,28 @@ interface TaskAttachmentWithFile extends TaskAttachment {
   file_size: number;
   file_size_formatted: string;  // "1.5 MB" 형태
   mime_type: string | null;
+}
+```
+
+### PaymentRecord
+```typescript
+interface PaymentRecord {
+  payment_id: number;
+  subscription_id: number;
+  owner_id: number;
+  owner_type: "team" | "personal";
+  member_id: number;
+  plan_id: number;
+  amount: number;
+  order_id: string;
+  tid: string | null;
+  bid: string;
+  status: "SUCCESS" | "FAILED" | "REFUNDED";
+  result_code: string | null;
+  result_msg: string | null;
+  payment_type: "FIRST" | "RECURRING" | "RETRY";
+  created_at: Date;
+  plan_name?: string;
 }
 ```
 
@@ -735,13 +803,27 @@ interface TeamStorageUsage {
 - `deletePlan(planId)` - 플랜 삭제
 
 ### Subscription 관련 (`src/lib/subscription.ts`)
-- `getSubscriptionsByTeamId(teamId)` - 팀의 모든 구독 조회
-- `getActiveSubscriptionByTeamId(teamId)` - 팀의 활성 구독 조회
+- `getSubscriptionsByOwnerId(ownerId, ownerType)` - 오너의 모든 구독 조회
+- `getActiveSubscriptionByOwner(ownerId, ownerType)` - 오너의 활성 구독 조회
 - `getSubscriptionById(subscriptionId)` - 구독 조회
-- `createSubscription(teamId, planId)` - 새 구독 생성 (기존 활성 구독 자동 만료)
+- `createSubscription(ownerId, ownerType, planId, createdBy?, billingKeyMemberId?)` - 새 구독 생성 (기존 활성 구독 자동 만료, next_payment_date = +1개월)
 - `updateSubscriptionStatus(subscriptionId, status)` - 구독 상태 변경
-- `cancelSubscription(subscriptionId)` - 구독 취소
+- `cancelSubscription(subscriptionId)` - 구독 취소 (next_payment_date = NULL)
 - `deleteSubscription(subscriptionId)` - 구독 삭제
+- `getDueSubscriptions()` - 결제일 도래 활성 구독 목록 조회
+- `advancePaymentDate(subscriptionId)` - 다음 결제일 1개월 연장 + retry_count 리셋
+- `incrementRetryCount(subscriptionId)` - 재시도 횟수 증가
+
+### Payment History 관련 (`src/lib/payment-history.ts`)
+- `createPaymentRecord(data)` - 결제 이력 기록
+- `getPaymentsByOwner(ownerId, ownerType, limit?, offset?)` - 소유자별 결제 이력 조회
+- `getPaymentsBySubscription(subscriptionId)` - 구독별 결제 이력 조회
+
+### NicePay 관련 (`src/lib/nicepay.ts`)
+- `registerBillingKey(tid, orderId, amount, goodsName)` - 빌키(BID) 발급
+- `approveBilling(bid, orderId, amount, goodsName)` - 빌링 재결제
+- `expireBillingKey(bid, orderId)` - 빌키 만료 (NicePay API)
+- `generateMoid(prefix)` - 주문번호 생성
 
 ### File 관련 (`src/lib/file.ts`)
 - `createFileRecord(data)` - 파일 레코드 생성 (저장소 사용량 자동 증가)

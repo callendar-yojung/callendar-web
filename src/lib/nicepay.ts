@@ -1,72 +1,18 @@
-import { createHash, createCipheriv } from "crypto";
+const NICEPAY_API_URL =
+  process.env.NODE_ENV === "production"
+    ? "https://api.nicepay.co.kr"
+    : "https://sandbox-api.nicepay.co.kr";
 
-const NICEPAY_API_URL = "https://webapi.nicepay.co.kr/webapi";
-
-function getMid(): string {
-  const mid = process.env.NICEPAY_MID;
-  if (!mid) throw new Error("NICEPAY_MID is not configured");
-  return mid;
-}
-
-function getMerchantKey(): string {
-  const key = process.env.NICEPAY_MERCHANT_KEY;
-  if (!key) throw new Error("NICEPAY_MERCHANT_KEY is not configured");
+function getSecretKey(): string {
+  const key = process.env.NICEPAY_SECRET_KEY;
+  if (!key) throw new Error("NICEPAY_SECRET_KEY is not configured");
   return key;
 }
 
-/** YYYYMMDDHHMMSS 포맷 현재 시각 */
-export function getEdiDate(): string {
-  const now = new Date();
-  const y = now.getFullYear().toString();
-  const m = (now.getMonth() + 1).toString().padStart(2, "0");
-  const d = now.getDate().toString().padStart(2, "0");
-  const h = now.getHours().toString().padStart(2, "0");
-  const min = now.getMinutes().toString().padStart(2, "0");
-  const s = now.getSeconds().toString().padStart(2, "0");
-  return `${y}${m}${d}${h}${min}${s}`;
-}
-
-/** SHA-256 해시 생성 (hex) */
-export function generateSignData(fields: string[]): string {
-  const joined = fields.join("");
-  return createHash("sha256").update(joined).digest("hex");
-}
-
-/**
- * AES-128-ECB / PKCS5Padding 으로 카드 데이터 암호화
- * key = MerchantKey 앞 16자리, 결과는 Hex 인코딩
- */
-export function encryptData(plainText: string): string {
-  const merchantKey = getMerchantKey();
-  const key = Buffer.from(merchantKey.substring(0, 16), "utf8");
-  const cipher = createCipheriv("aes-128-ecb", key, null);
-  cipher.setAutoPadding(true);
-  let encrypted = cipher.update(plainText, "utf8", "hex");
-  encrypted += cipher.final("hex");
-  return encrypted;
-}
-
-/** 카드 데이터 암호화 (카드번호|유효기간|생년월일|비밀번호) */
-export function encryptCardData(
-  cardNo: string,
-  expYear: string,
-  expMonth: string,
-  idNo: string,
-  cardPw: string
-): string {
-  const plainText = `${cardNo}|${expYear}${expMonth}|${idNo}|${cardPw}`;
-  return encryptData(plainText);
-}
-
-/** NicePay TID 생성: MID(10) + 서비스코드(2) + 날짜(8) + 시간(6) + 시퀀스(4) */
-export function generateTID(mid?: string): string {
-  const m = mid || getMid();
-  const now = new Date();
-  const dateStr = getEdiDate();
-  const seq = Math.floor(Math.random() * 10000)
-    .toString()
-    .padStart(4, "0");
-  return `${m}01${dateStr}${seq}`;
+/** Basic Auth 헤더 생성: Base64(SecretKey:) */
+function getAuthHeader(): string {
+  const secretKey = getSecretKey();
+  return Buffer.from(`${secretKey}:`).toString("base64");
 }
 
 /** MOID 생성 */
@@ -84,156 +30,126 @@ interface BillingKeyResult {
 }
 
 /**
- * 빌키(BID) 발급 API 호출
- * POST /webapi/billing/billing_regist.jsp
+ * 빌키(BID) 발급 API — V2 Modern
+ * POST /v1/billing/{tid}
  */
 export async function registerBillingKey(
-  encData: string,
-  moid: string
+  tid: string,
+  orderId: string,
+  amount: number,
+  goodsName: string,
+  cardQuota?: number
 ): Promise<BillingKeyResult> {
-  const mid = getMid();
-  const merchantKey = getMerchantKey();
-  const ediDate = getEdiDate();
-  const signData = generateSignData([mid, ediDate, moid, merchantKey]);
-
-  const params = new URLSearchParams({
-    MID: mid,
-    EdiDate: ediDate,
-    Moid: moid,
-    EncData: encData,
-    SignData: signData,
-    CharSet: "utf-8",
+  const response = await fetch(`${NICEPAY_API_URL}/v1/billing/${tid}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Basic ${getAuthHeader()}`,
+    },
+    body: JSON.stringify({
+      orderId,
+      amount,
+      goodsName,
+      cardQuota: cardQuota ?? 0,
+    }),
   });
-
-  const response = await fetch(
-    `${NICEPAY_API_URL}/billing/billing_regist.jsp`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: params.toString(),
-    }
-  );
 
   const result = await response.json();
   console.log("[NicePay Billing] Register result:", JSON.stringify(result));
 
-  if (result.ResultCode !== "F100") {
-    throw new Error(result.ResultMsg || "빌키 발급 실패");
+  if (result.resultCode !== "0000") {
+    throw new Error(result.resultMsg || "빌키 발급 실패");
   }
 
   return {
-    bid: result.BID,
-    cardCode: result.CardCode || "",
-    cardName: result.CardName || "",
-    cardNo: result.CardNo || "",
-    resultCode: result.ResultCode,
-    resultMsg: result.ResultMsg,
+    bid: result.bid,
+    cardCode: result.card?.cardCode || "",
+    cardName: result.card?.cardName || "",
+    cardNo: result.card?.cardNo || "",
+    resultCode: result.resultCode,
+    resultMsg: result.resultMsg,
   };
 }
 
 interface BillingApproveResult {
   tid: string;
-  authCode: string;
-  amt: string;
+  amt: number;
   resultCode: string;
   resultMsg: string;
 }
 
 /**
- * 빌링 승인 API 호출
- * POST /webapi/billing/billing_approve.jsp
+ * 빌링 재결제(정기결제) API — V2 Modern
+ * POST /v1/billing/re-pay
  */
 export async function approveBilling(
   bid: string,
-  moid: string,
-  amt: number,
-  goodsName: string
+  orderId: string,
+  amount: number,
+  goodsName: string,
+  cardQuota?: number
 ): Promise<BillingApproveResult> {
-  const mid = getMid();
-  const merchantKey = getMerchantKey();
-  const ediDate = getEdiDate();
-  const tid = generateTID(mid);
-  const amtStr = amt.toString();
-  const signData = generateSignData([mid, ediDate, moid, amtStr, bid, merchantKey]);
-
-  const params = new URLSearchParams({
-    TID: tid,
-    BID: bid,
-    MID: mid,
-    EdiDate: ediDate,
-    Moid: moid,
-    Amt: amtStr,
-    GoodsName: goodsName,
-    SignData: signData,
-    CharSet: "utf-8",
+  const response = await fetch(`${NICEPAY_API_URL}/v1/billing/re-pay`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Basic ${getAuthHeader()}`,
+    },
+    body: JSON.stringify({
+      bid,
+      orderId,
+      amount,
+      goodsName,
+      cardQuota: cardQuota ?? 0,
+      useShopInterest: false,
+    }),
   });
-
-  const response = await fetch(
-    `${NICEPAY_API_URL}/billing/billing_approve.jsp`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: params.toString(),
-    }
-  );
 
   const result = await response.json();
   console.log("[NicePay Billing] Approve result:", JSON.stringify(result));
 
-  if (result.ResultCode !== "3001") {
-    throw new Error(result.ResultMsg || "빌링 승인 실패");
+  if (result.resultCode !== "0000") {
+    throw new Error(result.resultMsg || "빌링 승인 실패");
   }
 
   return {
-    tid: result.TID || tid,
-    authCode: result.AuthCode || "",
-    amt: result.Amt || amtStr,
-    resultCode: result.ResultCode,
-    resultMsg: result.ResultMsg,
+    tid: result.tid || "",
+    amt: result.amount || amount,
+    resultCode: result.resultCode,
+    resultMsg: result.resultMsg,
   };
 }
 
-interface BillingRemoveResult {
+interface ExpireBillingKeyResult {
   resultCode: string;
   resultMsg: string;
 }
 
 /**
- * 빌키 삭제 API 호출
- * POST /webapi/billing/billing_remove.jsp
+ * 빌링키(BID) 만료 API
+ * POST /v1/subscribe/{bid}/expire
  */
-export async function removeBillingKeyFromNicePay(
+export async function expireBillingKey(
   bid: string,
-  moid: string
-): Promise<BillingRemoveResult> {
-  const mid = getMid();
-  const merchantKey = getMerchantKey();
-  const ediDate = getEdiDate();
-  const signData = generateSignData([mid, ediDate, moid, bid, merchantKey]);
-
-  const params = new URLSearchParams({
-    MID: mid,
-    BID: bid,
-    EdiDate: ediDate,
-    Moid: moid,
-    SignData: signData,
-    CharSet: "utf-8",
-  });
-
+  orderId: string
+): Promise<ExpireBillingKeyResult> {
   const response = await fetch(
-    `${NICEPAY_API_URL}/billing/billing_remove.jsp`,
+    `${NICEPAY_API_URL}/v1/subscribe/${bid}/expire`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: params.toString(),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Basic ${getAuthHeader()}`,
+      },
+      body: JSON.stringify({ orderId }),
     }
   );
 
   const result = await response.json();
-  console.log("[NicePay Billing] Remove result:", JSON.stringify(result));
+  console.log("[NicePay Billing] Expire result:", JSON.stringify(result));
 
   return {
-    resultCode: result.ResultCode,
-    resultMsg: result.ResultMsg,
+    resultCode: result.resultCode,
+    resultMsg: result.resultMsg,
   };
 }

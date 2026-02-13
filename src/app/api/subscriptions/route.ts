@@ -99,13 +99,15 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { id, status } = body;
 
-    // 구독 상태 수정 로직
-    const updatedSubscription = await updateSubscriptionStatus(
-      Number(id),
-      status
-    );
+    // CANCELED 상태면 next_payment_date도 NULL로 설정하는 cancelSubscription 사용
+    let result: boolean;
+    if (status === "CANCELED") {
+      result = await cancelSubscription(Number(id));
+    } else {
+      result = await updateSubscriptionStatus(Number(id), status);
+    }
 
-    return NextResponse.json({ success: updatedSubscription });
+    return NextResponse.json({ success: result });
   } catch (error) {
     console.error("Error updating subscription:", error);
     return NextResponse.json(

@@ -67,11 +67,11 @@ export async function POST(request: NextRequest) {
     console.log("[NicePay] amount:", amount);
     console.log("[NicePay] orderId:", orderId);
 
-    const clientId = process.env.NICEPAY_CLIENT_ID;
+    const clientId = process.env.NEXT_PUBLIC_NICEPAY_CLIENT_KEY;
     const secretKey = process.env.NICEPAY_SECRET_KEY;
 
     if (!clientId || !secretKey) {
-      console.error("[NicePay] Missing NICEPAY_CLIENT_ID or NICEPAY_SECRET_KEY");
+      console.error("[NicePay] Missing NEXT_PUBLIC_NICEPAY_CLIENT_KEY or NICEPAY_SECRET_KEY");
       return redirectToCheckout(
         request,
         "failed",
