@@ -3,8 +3,8 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslations, useLocale } from "next-intl";
+import { useRouter } from "next/navigation";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import TaskModal, { type TaskFormData } from "./TaskModal";
 
 interface Tag {
   tag_id: number;
@@ -43,15 +43,36 @@ const isLightColor = (hex?: string) => {
   return lum > 0.6;
 };
 
+const getContentText = (value?: string | null) => {
+  if (!value) return "";
+  const trimmed = value.trim();
+  if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) return value;
+  try {
+    const json = JSON.parse(trimmed);
+    const texts: string[] = [];
+    const walk = (node: any) => {
+      if (!node) return;
+      if (node.type === "text" && typeof node.text === "string") {
+        texts.push(node.text);
+      }
+      if (Array.isArray(node.content)) {
+        node.content.forEach(walk);
+      }
+    };
+    walk(json);
+    return texts.join(" ").trim();
+  } catch {
+    return value;
+  }
+};
+
 export default function TasksDemo() {
   const t = useTranslations("dashboard.tasks");
   const locale = useLocale();
+  const router = useRouter();
   const { currentWorkspace } = useWorkspace();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<"create" | "view" | "edit">("create");
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
   const [sortBy, setSortBy] = useState<SortBy>("date");
   const [searchQuery, setSearchQuery] = useState("");
@@ -207,92 +228,11 @@ export default function TasksDemo() {
   };
 
   const handleOpenCreateModal = () => {
-    setModalMode("create");
-    setSelectedTask(null);
-    setIsModalOpen(true);
+    router.push("/dashboard/tasks/new");
   };
 
   const handleTaskClick = (task: Task) => {
-    setModalMode("view");
-    setSelectedTask(task);
-    setIsModalOpen(true);
-  };
-
-  const handleSaveTask = async (taskData: TaskFormData) => {
-    if (!currentWorkspace?.workspace_id) return;
-
-    try {
-      if (taskData.id) {
-        const response = await fetch("/api/tasks", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            task_id: taskData.id,
-            title: taskData.title,
-            start_time: taskData.start_time,
-            end_time: taskData.end_time,
-            content: taskData.content || null,
-            color: taskData.color,
-            tag_ids: taskData.tag_ids,
-          }),
-        });
-
-        if (response.ok) {
-          await fetchTasks();
-          await fetchStatusCounts();
-          setIsModalOpen(false);
-          setSelectedTask(null);
-        } else {
-          console.error("Failed to update task:", response.statusText);
-        }
-      } else {
-        const response = await fetch("/api/tasks", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: taskData.title,
-            start_time: taskData.start_time,
-            end_time: taskData.end_time,
-            content: taskData.content || null,
-            status: "TODO",
-            color: taskData.color,
-            tag_ids: taskData.tag_ids,
-            workspace_id: currentWorkspace.workspace_id,
-          }),
-        });
-
-        if (response.ok) {
-          await fetchTasks();
-          await fetchStatusCounts();
-          setIsModalOpen(false);
-        } else {
-          console.error("Failed to create task:", response.statusText);
-        }
-      }
-    } catch (error) {
-      console.error("Error saving task:", error);
-    }
-  };
-
-  const handleDeleteTask = async (taskId: number) => {
-    if (!confirm("정말 삭제하시겠습니까?")) return;
-
-    try {
-      const response = await fetch(`/api/tasks?task_id=${taskId}`, {
-        method: "DELETE",
-      });
-
-      if (response.ok) {
-        await fetchTasks();
-        await fetchStatusCounts();
-        setIsModalOpen(false);
-        setSelectedTask(null);
-      } else {
-        console.error("Failed to delete task:", response.statusText);
-      }
-    } catch (error) {
-      console.error("Error deleting task:", error);
-    }
+    router.push(`/dashboard/tasks/${task.id}`);
   };
 
   const handleStatusChange = async (taskId: number, newStatus: "TODO" | "IN_PROGRESS" | "DONE") => {
@@ -511,7 +451,7 @@ export default function TasksDemo() {
                         </div>
                         {task.content && (
                             <p className="mt-1 text-sm text-card-foreground">
-                              {task.content}
+                              {getContentText(task.content)}
                             </p>
                         )}
                         <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
@@ -621,27 +561,6 @@ export default function TasksDemo() {
           </div>
         )}
 
-        <TaskModal
-            isOpen={isModalOpen}
-            onClose={() => {
-              setIsModalOpen(false);
-              setSelectedTask(null);
-            }}
-            onSave={handleSaveTask}
-            onDelete={handleDeleteTask}
-            mode={modalMode}
-            initialData={selectedTask ? {
-              id: selectedTask.id,
-              title: selectedTask.title,
-              start_time: selectedTask.start_time,
-              end_time: selectedTask.end_time,
-              content: selectedTask.content || '',
-              color: selectedTask.color,
-              tag_ids: selectedTask.tags?.map(tag => tag.tag_id)
-            } : undefined}
-            workspaceType={currentWorkspace?.type}
-            ownerId={currentWorkspace?.owner_id}
-        />
       </div>
   );
 }

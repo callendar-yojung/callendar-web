@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import TaskModal, { type TaskFormData } from "./TaskModal";
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon } from "lucide-react"; // 아이콘 라이브러리 추가 권장
+import { useRouter } from "next/navigation";
 
 interface Tag {
   tag_id: number;
@@ -28,16 +29,15 @@ export default function CalendarDemo() {
   const t = useTranslations("dashboard");
   const locale = useLocale();
   const { currentWorkspace } = useWorkspace();
+  const router = useRouter();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date()); // 기본값 오늘로 설정
   const [isLoading, setIsLoading] = useState(true);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
-  // 태스크 개수 데이터 불러오기
   useEffect(() => {
     if (!currentWorkspace) return;
 
@@ -45,7 +45,7 @@ export default function CalendarDemo() {
       try {
         setIsLoading(true);
         const response = await fetch(
-          `/api/tasks?workspace_id=${currentWorkspace.workspace_id}`
+            `/api/tasks?workspace_id=${currentWorkspace.workspace_id}`
         );
         if (response.ok) {
           const data = await response.json();
@@ -67,24 +67,15 @@ export default function CalendarDemo() {
   const totalDays = lastDayOfMonth.getDate();
 
   const days = [];
-  for (let i = 0; i < startingDay; i++) {
-    days.push(null);
-  }
-  for (let i = 1; i <= totalDays; i++) {
-    days.push(i);
-  }
+  for (let i = 0; i < startingDay; i++) days.push(null);
+  for (let i = 1; i <= totalDays; i++) days.push(i);
 
   const weekDays = [
-    t("calendar.weekDays.sun"),
-    t("calendar.weekDays.mon"),
-    t("calendar.weekDays.tue"),
-    t("calendar.weekDays.wed"),
-    t("calendar.weekDays.thu"),
-    t("calendar.weekDays.fri"),
+    t("calendar.weekDays.sun"), t("calendar.weekDays.mon"), t("calendar.weekDays.tue"),
+    t("calendar.weekDays.wed"), t("calendar.weekDays.thu"), t("calendar.weekDays.fri"),
     t("calendar.weekDays.sat"),
   ];
 
-  // Helper to format date as YYYY-MM-DD in local timezone
   const formatLocalDate = (date: Date) => {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -92,300 +83,225 @@ export default function CalendarDemo() {
     return `${y}-${m}-${d}`;
   };
 
-  // 특정 날짜의 태스크 가져오기
-  const getTasksForDate = (day: number | null) => {
-    if (!day) return [];
-    const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-
-    return tasks.filter((task) => {
-      // Use local date comparison instead of UTC
-      const taskStartDate = formatLocalDate(new Date(task.start_time));
-      const taskEndDate = formatLocalDate(new Date(task.end_time || task.start_time));
-      return dateStr >= taskStartDate && dateStr <= taskEndDate;
-    });
-  };
-
   const isToday = (day: number | null) => {
     if (!day) return false;
     const today = new Date();
-    return (
-      today.getFullYear() === year &&
-      today.getMonth() === month &&
-      today.getDate() === day
-    );
+    return today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
   };
 
-  const handlePrevMonth = () => {
-    setCurrentDate(new Date(year, month - 1, 1));
-    setSelectedDate(null);
+  const handlePrevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
+  const handleNextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
+  const handleDateClick = (day: number) => setSelectedDate(new Date(year, month, day));
+
+  const getTaskColor = (task: Task) => task.color || task.tags?.[0]?.color || "#3B82F6";
+
+  const getReadableTextColor = (color: string) => {
+    const hex = color.replace("#", "");
+    if (hex.length !== 6) return "#fff";
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+    const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+    return yiq >= 180 ? "#0f172a" : "#ffffff";
   };
 
-  const handleNextMonth = () => {
-    setCurrentDate(new Date(year, month + 1, 1));
-    setSelectedDate(null);
-  };
-
-  const handleDateClick = (day: number) => {
-    setSelectedDate(new Date(year, month, day));
-  };
-
-  const handleSaveTask = async (taskData: TaskFormData) => {
-    if (!currentWorkspace) return;
-
+  const getContentText = (value?: string) => {
+    if (!value) return "";
+    const trimmed = value.trim();
+    if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) return value;
     try {
-      const response = await fetch("/api/tasks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...taskData,
-          workspace_id: currentWorkspace.workspace_id,
-        }),
-      });
-
-      if (response.ok) {
-        setIsModalOpen(false);
-        // 태스크 목록 새로고침
-        const tasksResponse = await fetch(
-          `/api/tasks?workspace_id=${currentWorkspace.workspace_id}`
-        );
-        if (tasksResponse.ok) {
-          const data = await tasksResponse.json();
-          setTasks(data.tasks);
+      const json = JSON.parse(trimmed);
+      const texts: string[] = [];
+      const walk = (node: any) => {
+        if (!node) return;
+        if (node.type === "text" && typeof node.text === "string") {
+          texts.push(node.text);
         }
-      }
-    } catch (error) {
-      console.error("Failed to create task:", error);
+        if (Array.isArray(node.content)) {
+          node.content.forEach(walk);
+        }
+      };
+      walk(json);
+      return texts.join(" ").trim();
+    } catch {
+      return value;
     }
   };
 
-  const formatTime = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleTimeString(locale === "ko" ? "ko-KR" : "en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
+  const tasksByDay = useMemo(() => {
+    const map = new Map<number, Task[]>();
+    for (let day = 1; day <= totalDays; day++) map.set(day, []);
+
+    tasks.forEach((task) => {
+      const taskStartDate = formatLocalDate(new Date(task.start_time));
+      const taskEndDate = formatLocalDate(new Date(task.end_time || task.start_time));
+      for (let day = 1; day <= totalDays; day++) {
+        const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        if (dateStr >= taskStartDate && dateStr <= taskEndDate) {
+          map.get(day)?.push(task);
+        }
+      }
     });
-  };
+    return map;
+  }, [tasks, totalDays, year, month]);
 
   const selectedDateTasks = selectedDate
-    ? getTasksForDate(selectedDate.getDate())
-    : [];
+      ? (tasksByDay.get(selectedDate.getDate()) || [])
+      : [];
 
   if (isLoading) {
     return (
-      <div className="rounded-xl border border-border bg-card p-6">
-        <div className="flex items-center justify-center py-8">
-          <div className="text-muted-foreground">Loading...</div>
+        <div className="flex h-[600px] items-center justify-center rounded-3xl border border-border bg-card/50 backdrop-blur-md">
+          <div className="flex flex-col items-center gap-4">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            <p className="text-sm font-medium text-muted-foreground">Loading your schedule...</p>
+          </div>
         </div>
-      </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-      {/* 캘린더 */}
-      <div className="lg:col-span-2">
-        <div className="rounded-xl border border-border bg-card p-6">
-          {/* 헤더 */}
-          <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-foreground">
-              {currentDate.toLocaleDateString(
-                locale === "ko" ? "ko-KR" : "en-US",
-                { year: "numeric", month: "long" }
-              )}
-            </h2>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handlePrevMonth}
-                className="rounded-lg p-2 hover:bg-hover"
-                aria-label="Previous month"
-              >
-                <svg
-                  className="h-5 w-5 text-muted-foreground"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 19l-7-7 7-7"
-                  />
-                </svg>
-              </button>
-              <button
-                type="button"
-                onClick={() => setCurrentDate(new Date())}
-                className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-              >
-                {t("calendar.today")}
-              </button>
-              <button
-                type="button"
-                onClick={handleNextMonth}
-                className="rounded-lg p-2 hover:bg-hover"
-                aria-label="Next month"
-              >
-                <svg
-                  className="h-5 w-5 text-muted-foreground"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
-              </button>
-            </div>
-          </div>
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-4 animate-in fade-in duration-700">
+        {/* 캘린더 메인 섹션 */}
+        <div className="lg:col-span-3 space-y-6">
+          <div className="overflow-hidden rounded-[2.5rem] border border-border/60 bg-card shadow-2xl shadow-foreground/5">
+            {/* 헤더: 글래스모피즘 스타일 */}
+            <div className="flex items-center justify-between border-b border-border/40 bg-muted/10 px-8 py-7 backdrop-blur-xl">
+              <div className="space-y-1">
+                <h2 className="text-3xl font-bold tracking-tight text-foreground">
+                  {currentDate.toLocaleDateString(locale, { month: "long" })}
+                  <span className="ml-3 font-light text-muted-foreground/60">{year}</span>
+                </h2>
+                <p className="text-sm font-medium text-primary/70 italic">
+                  {currentWorkspace?.name || t("calendar.title")}
+                </p>
+              </div>
 
-          {/* 캘린더 그리드 */}
-          <div className="space-y-2">
-            {/* 요일 */}
-            <div className="grid grid-cols-7 gap-4">
-              {weekDays.map((day, i) => (
-                <div
-                  key={day}
-                  className={`py-2 text-center text-sm font-semibold ${
-                    i === 0
-                      ? "text-destructive"
-                      : i === 6
-                        ? "text-primary"
-                        : "text-muted-foreground"
-                  }`}
-                >
-                  {day}
-                </div>
-              ))}
+              <div className="flex items-center gap-3 bg-background/50 p-1.5 rounded-2xl border border-border/40 shadow-inner">
+                <button onClick={handlePrevMonth} className="p-2 rounded-xl hover:bg-muted transition-colors"><ChevronLeft size={20} /></button>
+                <button onClick={() => setCurrentDate(new Date())} className="px-4 py-1.5 text-xs font-bold uppercase tracking-wider hover:text-primary transition-colors">{t("calendar.today")}</button>
+                <button onClick={handleNextMonth} className="p-2 rounded-xl hover:bg-muted transition-colors"><ChevronRight size={20} /></button>
+              </div>
             </div>
 
-            {/* 날짜 */}
-            <div className="grid grid-cols-7 gap-4">
-              {days.map((day, index) => {
-                const dayTasks = getTasksForDate(day);
-                const isSelected =
-                  selectedDate?.getDate() === day &&
-                  selectedDate?.getMonth() === month;
+            {/* 캘린더 바디 */}
+            <div className="p-6">
+              <div className="mb-4 grid grid-cols-7 gap-4 text-center">
+                {weekDays.map((day, i) => (
+                    <div key={day} className={`text-xs font-black uppercase tracking-widest ${i === 0 ? "text-red-400" : i === 6 ? "text-blue-400" : "text-muted-foreground/50"}`}>
+                      {day}
+                    </div>
+                ))}
+              </div>
 
-                return (
-                  <button
-                    key={index}
-                    type="button"
-                    disabled={!day}
-                    onClick={() => day && handleDateClick(day)}
-                    className={`min-h-[120px] rounded-lg border p-2 text-left transition-all ${
-                      !day
-                        ? "cursor-default border-transparent"
-                        : isSelected
-                          ? "border-primary bg-primary/10"
-                          : isToday(day)
-                            ? "border-foreground bg-muted"
-                            : "border-border hover:border-primary/50"
-                    }`}
-                  >
-                    {day && (
-                      <>
-                        <div
-                          className={`mb-2 text-sm font-semibold ${
-                            isToday(day)
-                              ? "text-primary"
-                              : "text-foreground"
-                          }`}
-                        >
+              <div className="grid grid-cols-7 gap-4">
+                {days.map((day, index) => {
+                  const dayTasks = day ? tasksByDay.get(day) || [] : [];
+                  const isSelected = selectedDate?.getDate() === day && selectedDate?.getMonth() === month;
+
+                  return (
+                      <button
+                          key={index}
+                          disabled={!day}
+                          onClick={() => day && handleDateClick(day)}
+                          className={`group relative flex min-h-[120px] flex-col rounded-[1.5rem] border p-3 transition-all duration-300
+                      ${!day ? "border-transparent opacity-0" :
+                              isSelected ? "border-primary bg-primary/5 shadow-xl shadow-primary/10 ring-2 ring-primary/20 scale-[1.03] z-10" :
+                                  isToday(day) ? "border-primary/30 bg-secondary/30" : "border-border/50 bg-background hover:border-primary/40 hover:shadow-lg hover:shadow-foreground/5"}
+                    `}
+                      >
+                        {day && (
+                            <>
+                        <span className={`text-sm font-bold ${isToday(day) ? "text-primary" : "text-foreground/70"}`}>
                           {day}
-                        </div>
-                        <div className="space-y-1">
-                          {dayTasks.slice(0, 2).map((task) => (
-                            <div
-                              key={task.id}
-                              className="truncate rounded bg-primary/10 px-2 py-1 text-xs text-primary"
-                            >
-                              {task.content || "Task"}
-                            </div>
-                          ))}
-                          {dayTasks.length > 2 && (
-                            <div className="text-xs text-muted-foreground">
-                              {t("calendar.more", { count: dayTasks.length - 2 })}
-                            </div>
-                          )}
-                        </div>
-                      </>
-                    )}
-                  </button>
-                );
-              })}
+                        </span>
+                              <div className="mt-3 space-y-1.5">
+                                {dayTasks.slice(0, 2).map((task) => (
+                                  <div
+                                    key={task.id}
+                                    className="truncate rounded-full px-2 py-1 text-[10px] font-semibold"
+                                    style={{
+                                      backgroundColor: getTaskColor(task),
+                                      color: getReadableTextColor(getTaskColor(task)),
+                                    }}
+                                  >
+                                    {task.title || getContentText(task.content) || "Task"}
+                                  </div>
+                                ))}
+                                {dayTasks.length > 2 && (
+                                  <p className="text-[10px] font-bold text-muted-foreground/60">
+                                    + {dayTasks.length - 2} more
+                                  </p>
+                                )}
+                              </div>
+                            </>
+                        )}
+                      </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* 선택된 날짜의 태스크 목록 */}
-      <div className="lg:col-span-1">
-        <div className="rounded-xl border border-border bg-card p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-foreground">
-              {selectedDate
-                ? selectedDate.toLocaleDateString(
-                    locale === "ko" ? "ko-KR" : "en-US",
-                    { month: "long", day: "numeric" }
-                  )
-                : t("calendar.selectDate")}
-            </h3>
-            {selectedDate && (
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(true)}
-                className="text-sm text-primary hover:underline"
-              >
-                + {t("calendar.add")}
-              </button>
-            )}
-          </div>
-
-          <div className="space-y-3">
-            {selectedDateTasks.length === 0 ? (
-              <p className="text-center text-sm text-muted-foreground">
-                {selectedDate
-                  ? t("calendar.noTasksOnDate")
-                  : t("calendar.selectDateFromCalendar")}
-              </p>
-            ) : (
-              selectedDateTasks.map((task) => (
-                <div
-                  key={task.id}
-                  className="rounded-lg border border-border p-3 hover:bg-hover"
-                >
-                  <div className="text-sm font-medium text-foreground">
-                    {task.content || "Task"}
-                  </div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {formatTime(task.start_time)} - {formatTime(task.end_time || task.start_time)}
-                  </div>
+        {/* 우측 사이드바: 벤토 카드 스타일 */}
+        <div className="lg:col-span-1 space-y-6">
+          <div className="rounded-[2.5rem] border border-border/60 bg-card p-8 shadow-xl">
+            <div className="mb-8 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="rounded-2xl bg-primary/10 p-2.5 text-primary">
+                  <CalendarIcon size={20} />
                 </div>
-              ))
-            )}
+                <h3 className="font-bold text-xl">
+                  {selectedDate?.getDate()} <span className="text-sm font-medium text-muted-foreground">{currentDate.toLocaleDateString(locale, { month: 'short' })}</span>
+                </h3>
+              </div>
+              <button
+                  onClick={() => router.push("/dashboard/tasks/new")}
+                  className="flex h-10 w-10 items-center justify-center rounded-2xl bg-foreground text-background transition-transform hover:scale-110 active:scale-95 shadow-lg"
+              >
+                <Plus size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+              {selectedDateTasks.length === 0 ? (
+                  <div className="py-12 text-center space-y-3">
+                    <div className="mx-auto h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground/30">
+                      <Plus size={24} />
+                    </div>
+                    <p className="text-sm font-medium text-muted-foreground/60">No plans for today</p>
+                  </div>
+              ) : (
+                  selectedDateTasks.map((task) => (
+                      <div
+                          key={task.id}
+                          className="group relative overflow-hidden rounded-3xl border border-border/50 bg-background p-5 transition-all hover:border-primary/30 hover:shadow-md"
+                          onClick={() => router.push(`/dashboard/tasks/${task.id}`)}
+                      >
+                        <div
+                            className="absolute left-0 top-0 h-full w-1.5"
+                            style={{ backgroundColor: getTaskColor(task) }}
+                        />
+                        <h4 className="font-bold text-foreground group-hover:text-primary transition-colors">
+                          {task.title || getContentText(task.content) || "Untitled Task"}
+                        </h4>
+                        <div className="mt-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground/50">
+                    <span className="rounded-lg bg-muted px-2 py-1">
+                      {new Date(task.start_time).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                          <span>→</span>
+                          <span>
+                      {new Date(task.end_time || task.start_time).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                        </div>
+                      </div>
+                  ))
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      <TaskModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSave={handleSaveTask}
-        initialData={selectedDate ? {
-          title: '',
-          start_time: selectedDate.toISOString(),
-          end_time: new Date(selectedDate.getTime() + 60 * 60 * 1000).toISOString(),
-          content: ''
-        } : undefined}
-        workspaceType={currentWorkspace?.type}
-        ownerId={currentWorkspace?.owner_id}
-      />
-    </div>
+      </div>
   );
 }

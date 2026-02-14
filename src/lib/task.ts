@@ -49,8 +49,18 @@ export interface Task {
   updated_at: string;
   created_by: number;
   updated_by: number;
+  created_by_name?: string | null;
+  updated_by_name?: string | null;
   workspace_id: number;
   tags?: Array<{ tag_id: number; name: string; color: string }>;
+}
+
+export async function getTaskById(taskId: number): Promise<Task | null> {
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT * FROM tasks WHERE id = ? LIMIT 1`,
+    [taskId]
+  );
+  return rows.length > 0 ? (rows[0] as Task) : null;
 }
 
 export interface CreateTaskData {
@@ -185,10 +195,14 @@ export async function getTasksByWorkspaceIdPaginated(
   const [rows] = await pool.query<RowDataPacket[]>(
     `SELECT 
       t.*,
+      creator.nickname as created_by_name,
+      updater.nickname as updated_by_name,
       tg.tag_id,
       tags.name as tag_name,
       tags.color as tag_color
      FROM tasks t
+     LEFT JOIN members creator ON t.created_by = creator.member_id
+     LEFT JOIN members updater ON t.updated_by = updater.member_id
      LEFT JOIN task_tags tg ON t.id = tg.task_id
      LEFT JOIN tags ON tg.tag_id = tags.tag_id
      WHERE ${whereClause} 
@@ -214,6 +228,8 @@ export async function getTasksByWorkspaceIdPaginated(
         updated_at: row.updated_at,
         created_by: row.created_by,
         updated_by: row.updated_by,
+        created_by_name: row.created_by_name || null,
+        updated_by_name: row.updated_by_name || null,
         workspace_id: row.workspace_id,
         tags: []
       });
@@ -391,10 +407,14 @@ export async function getTasksByDate(
   const [rows] = await pool.query<RowDataPacket[]>(
     `SELECT
       t.*,
+      creator.nickname as created_by_name,
+      updater.nickname as updated_by_name,
       tg.tag_id,
       tags.name as tag_name,
       tags.color as tag_color
      FROM tasks t
+     LEFT JOIN members creator ON t.created_by = creator.member_id
+     LEFT JOIN members updater ON t.updated_by = updater.member_id
      LEFT JOIN task_tags tg ON t.id = tg.task_id
      LEFT JOIN tags ON tg.tag_id = tags.tag_id
      WHERE t.workspace_id = ?
@@ -421,6 +441,8 @@ export async function getTasksByDate(
         updated_at: row.updated_at,
         created_by: row.created_by,
         updated_by: row.updated_by,
+        created_by_name: row.created_by_name || null,
+        updated_by_name: row.updated_by_name || null,
         workspace_id: row.workspace_id,
         tags: []
       });

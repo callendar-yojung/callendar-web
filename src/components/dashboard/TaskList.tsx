@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import TaskModal, { type TaskFormData } from "./TaskModal";
+import { useRouter } from "next/navigation";
 
 interface Task {
   id: number;
@@ -17,6 +17,8 @@ interface Task {
   updated_at: string;
   created_by: number;
   updated_by: number;
+  created_by_name?: string | null;
+  updated_by_name?: string | null;
   workspace_id: number;
   tags?: Array<{ tag_id: number; name: string; color: string }>;
 }
@@ -26,11 +28,9 @@ type ViewMode = "timeline" | "list";
 export default function TaskList() {
   const t = useTranslations("dashboard.tasks");
   const { currentWorkspace } = useWorkspace();
+  const router = useRouter();
 
   // 공통 상태
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<"create" | "view" | "edit">("create");
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -121,84 +121,13 @@ export default function TaskList() {
     setSelectedDate(new Date());
   };
 
-  // 모달 핸들러
+  // 네비게이션 핸들러
   const handleOpenCreateModal = () => {
-    setModalMode("create");
-    setSelectedTask(null);
-    setIsModalOpen(true);
+    router.push("/dashboard/tasks/new");
   };
 
   const handleTaskClick = (task: Task) => {
-    setModalMode("view");
-    setSelectedTask(task);
-    setIsModalOpen(true);
-  };
-
-  const handleSaveTask = async (taskData: TaskFormData) => {
-    if (!currentWorkspace) return;
-    try {
-      if (taskData.id) {
-        const response = await fetch("/api/tasks", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            task_id: taskData.id,
-            title: taskData.title,
-            start_time: taskData.start_time,
-            end_time: taskData.end_time,
-            content: taskData.content || null,
-            color: taskData.color,
-            tag_ids: taskData.tag_ids,
-          }),
-        });
-        if (response.ok) {
-          setIsModalOpen(false);
-          setSelectedTask(null);
-          await fetchTasks();
-        } else {
-          const error = await response.json();
-          alert(error.error || "Failed to update task");
-        }
-      } else {
-        const response = await fetch("/api/tasks", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ...taskData,
-            workspace_id: currentWorkspace.workspace_id,
-          }),
-        });
-        if (response.ok) {
-          setIsModalOpen(false);
-          await fetchTasks();
-        } else {
-          const error = await response.json();
-          alert(error.error || "Failed to create task");
-        }
-      }
-    } catch (error) {
-      console.error("Failed to save task:", error);
-      alert("Failed to save task");
-    }
-  };
-
-  const handleDeleteTask = async (taskId: number) => {
-    if (!confirm("정말 삭제하시겠습니까?")) return;
-    try {
-      const response = await fetch(`/api/tasks?task_id=${taskId}`, {
-        method: "DELETE",
-      });
-      if (response.ok) {
-        setIsModalOpen(false);
-        setSelectedTask(null);
-        await fetchTasks();
-      } else {
-        alert("Failed to delete task");
-      }
-    } catch (error) {
-      console.error("Error deleting task:", error);
-      alert("Failed to delete task");
-    }
+    router.push(`/dashboard/tasks/${task.id}`);
   };
 
   // 태스크 위치 계산 (타임라인)
@@ -444,28 +373,6 @@ export default function TaskList() {
         )}
       </div>
 
-      <TaskModal
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setSelectedTask(null);
-        }}
-        onSave={handleSaveTask}
-        onDelete={handleDeleteTask}
-        mode={modalMode}
-        initialData={selectedTask ? {
-          id: selectedTask.id,
-          title: selectedTask.title,
-          start_time: selectedTask.start_time,
-          end_time: selectedTask.end_time,
-          content: selectedTask.content || '',
-          status: selectedTask.status,
-          color: selectedTask.color || '#3B82F6',
-          tag_ids: selectedTask.tags?.map(tag => tag.tag_id) || []
-        } : null}
-        workspaceType={currentWorkspace?.type}
-        ownerId={currentWorkspace?.owner_id}
-      />
     </>
   );
 }

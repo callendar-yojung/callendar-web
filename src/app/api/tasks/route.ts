@@ -4,10 +4,13 @@ import {
   createTask,
   getTasksByWorkspaceIdPaginated,
   updateTask,
-  deleteTask
+  deleteTask,
+  getTaskById
 } from "@/lib/task";
 import { checkWorkspaceAccess } from "@/lib/workspace";
 import { attachFileToTask } from "@/lib/task-attachment";
+import { getWorkspaceById } from "@/lib/workspace";
+import { getTeamById, getPermissionsByMember } from "@/lib/team";
 
 // GET /api/tasks?workspace_id={id}&page=1&limit=20&sort_by=start_time&sort_order=DESC&status=TODO&search=keyword
 export async function GET(request: NextRequest) {
@@ -92,6 +95,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const workspace = await getWorkspaceById(Number(workspace_id));
+    if (!workspace) {
+      return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
+    }
+
+    if (workspace.type === "team") {
+      const team = await getTeamById(workspace.owner_id);
+      if (!team) {
+        return NextResponse.json({ error: "Team not found" }, { status: 404 });
+      }
+
+      if (team.created_by !== user.memberId) {
+        const permissions = await getPermissionsByMember(team.id, user.memberId);
+        if (!permissions.includes("TASK_CREATE")) {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+      }
+    }
+
     // 시간 유효성 검사
     if (new Date(start_time) >= new Date(end_time)) {
       return NextResponse.json(
@@ -151,6 +173,38 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    const task = await getTaskById(Number(task_id));
+    if (!task) {
+      return NextResponse.json({ error: "Task not found" }, { status: 404 });
+    }
+
+    const hasAccess = await checkWorkspaceAccess(task.workspace_id, user.memberId);
+    if (!hasAccess) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const workspace = await getWorkspaceById(task.workspace_id);
+    if (!workspace) {
+      return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
+    }
+
+    if (workspace.type === "team") {
+      const team = await getTeamById(workspace.owner_id);
+      if (!team) {
+        return NextResponse.json({ error: "Team not found" }, { status: 404 });
+      }
+
+      if (team.created_by !== user.memberId) {
+        const permissions = await getPermissionsByMember(team.id, user.memberId);
+        const canEditAll = permissions.includes("TASK_EDIT_ALL");
+        const canEditOwn = permissions.includes("TASK_EDIT_OWN");
+
+        if (!(canEditAll || (canEditOwn && task.created_by === user.memberId))) {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+      }
+    }
+
     await updateTask(
       Number(task_id),
       { title, start_time, end_time, content, status, color, tag_ids },
@@ -183,6 +237,38 @@ export async function DELETE(request: NextRequest) {
         { error: "task_id is required" },
         { status: 400 }
       );
+    }
+
+    const task = await getTaskById(Number(taskId));
+    if (!task) {
+      return NextResponse.json({ error: "Task not found" }, { status: 404 });
+    }
+
+    const hasAccess = await checkWorkspaceAccess(task.workspace_id, user.memberId);
+    if (!hasAccess) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const workspace = await getWorkspaceById(task.workspace_id);
+    if (!workspace) {
+      return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
+    }
+
+    if (workspace.type === "team") {
+      const team = await getTeamById(workspace.owner_id);
+      if (!team) {
+        return NextResponse.json({ error: "Team not found" }, { status: 404 });
+      }
+
+      if (team.created_by !== user.memberId) {
+        const permissions = await getPermissionsByMember(team.id, user.memberId);
+        const canDeleteAll = permissions.includes("TASK_DELETE_ALL");
+        const canDeleteOwn = permissions.includes("TASK_DELETE_OWN");
+
+        if (!(canDeleteAll || (canDeleteOwn && task.created_by === user.memberId))) {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+      }
     }
 
     await deleteTask(Number(taskId));
