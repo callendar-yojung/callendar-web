@@ -59,14 +59,14 @@ export async function PUT(
   }
 
   const body = await request.json();
-  const codes = Array.isArray(body?.codes)
-    ? body.codes.filter((code: unknown) => typeof code === "string")
+  const codes: string[] | null = Array.isArray(body?.codes)
+    ? body.codes.filter((code: unknown): code is string => typeof code === "string")
     : null;
   if (!codes) {
     return NextResponse.json({ error: "codes is required" }, { status: 400 });
   }
 
-  const normalized = Array.from(new Set(codes.map((code) => code.trim()))).filter(
+  const normalized = Array.from(new Set(codes.map((code: string) => code.trim()))).filter(
     (code) => code.length > 0
   );
   if (normalized.some((code) => !isValidPermissionCode(code))) {

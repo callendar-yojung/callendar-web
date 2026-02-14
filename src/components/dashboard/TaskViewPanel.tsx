@@ -97,19 +97,19 @@ export default function TaskViewPanel({
     fetchAttachments();
   }, [task.id]);
 
-  const statusLabels = {
+  const statusLabels: Record<NonNullable<TaskViewData["status"]>, string> = {
     TODO: tStatus("pending"),
     IN_PROGRESS: tStatus("in_progress"),
     DONE: tStatus("completed"),
   };
 
-  const statusColors = {
+  const statusColors: Record<NonNullable<TaskViewData["status"]>, string> = {
     TODO: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
     IN_PROGRESS: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
     DONE: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
   };
 
-  const statusOptions: Array<TaskViewData["status"]> = ["TODO", "IN_PROGRESS", "DONE"];
+  const statusOptions: Array<NonNullable<TaskViewData["status"]>> = ["TODO", "IN_PROGRESS", "DONE"];
 
   const formatDateTimeDisplay = (dateStr: string) => {
     const date = new Date(dateStr);
