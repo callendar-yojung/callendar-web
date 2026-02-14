@@ -238,6 +238,21 @@ CREATE TABLE payment_history (
 );
 ```
 
+### 빌링키 (billing_keys)
+```sql
+CREATE TABLE billing_keys (
+  billing_key_id             BIGINT PRIMARY KEY AUTO_INCREMENT,
+  member_id      BIGINT NOT NULL,                     -- 회원 ID
+  bid            VARCHAR(50) NOT NULL,                -- NicePay 빌링키
+  card_code      VARCHAR(10),                         -- 카드사 코드
+  card_name      VARCHAR(50),                         -- 카드사 명
+  card_no_masked VARCHAR(20),                         -- 마스킹된 카드번호
+  status         ENUM('ACTIVE', 'REMOVED') DEFAULT 'ACTIVE',
+  created_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_member_status (member_id, status)
+);
+```
+
 > **Note**: `subscriptions` 테이블에 `next_payment_date` (DATETIME), `billing_key_member_id` (BIGINT), `retry_count` (INT DEFAULT 0) 컬럼 추가됨 (DDL: `database_update_recurring_billing.sql`)
 
 ## 환경 변수 (.env.local)
