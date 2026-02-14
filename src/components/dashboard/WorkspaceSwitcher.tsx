@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 
 interface Workspace {
@@ -17,14 +18,17 @@ interface Team {
   name: string;
   description: string | null;
   memberCount?: number;
+  role_name?: string | null;
 }
 
 export default function WorkspaceSwitcher() {
   const t = useTranslations("dashboard.workspace");
+  const router = useRouter();
   const { currentWorkspace, setCurrentWorkspace } = useWorkspace();
   const [isOpen, setIsOpen] = useState(false);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
+  const [nickname, setNickname] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newTeamName, setNewTeamName] = useState("");
   const [newTeamDescription, setNewTeamDescription] = useState("");
@@ -37,14 +41,17 @@ export default function WorkspaceSwitcher() {
 
   const fetchData = async () => {
     try {
-      const [wsRes, teamRes] = await Promise.all([
+      const [wsRes, teamRes, meRes] = await Promise.all([
         fetch("/api/me/workspaces"),
         fetch("/api/me/teams"),
+        fetch("/api/me/account"),
       ]);
       const wsData = await wsRes.json();
       const teamData = await teamRes.json();
+      const meData = await meRes.json();
       setWorkspaces(wsData.workspaces || []);
       setTeams(teamData.teams || []);
+      setNickname(meData?.nickname || null);
     } catch (error) {
       console.error("Failed to fetch data:", error);
     }
@@ -70,6 +77,15 @@ export default function WorkspaceSwitcher() {
 
   // 개인 워크스페이스들
   const personalWorkspaces = workspaces.filter((w) => w.type === "personal");
+  const primaryPersonalWorkspace =
+    currentWorkspace?.type === "personal"
+      ? personalWorkspaces.find(
+          (workspace) => workspace.workspace_id === currentWorkspace.workspace_id
+        ) || personalWorkspaces[0]
+      : personalWorkspaces[0];
+  const personalLabel = nickname
+    ? `${nickname} - ${t("personal")}`
+    : t("personalWorkspace") || "개인 워크스페이스";
 
   // 현재 선택된 워크스페이스가 어느 팀 소속인지 표시
   const currentTeam =
@@ -126,13 +142,15 @@ export default function WorkspaceSwitcher() {
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">
-                {currentWorkspace?.name}
+                {currentWorkspace?.type === "personal"
+                  ? personalLabel
+                  : currentWorkspace?.name}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 {currentWorkspace?.type === "personal"
                   ? t("personalWorkspace") || "개인 워크스페이스"
                   : currentTeam
-                    ? `${currentTeam.name} · ${currentWorkspace?.memberCount || 0} ${t("members")}`
+                    ? `${currentTeam.role_name || t("memberRole")} · ${currentWorkspace?.memberCount || 0} ${t("members")}`
                     : t("teamWorkspace")}
               </p>
             </div>
@@ -154,7 +172,7 @@ export default function WorkspaceSwitcher() {
 
         {/* 드롭다운 */}
         {isOpen && (
-          <div className="absolute left-0 top-full z-50 mt-2 w-full min-w-[320px] max-h-[420px] overflow-y-auto overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl">
+          <div className="absolute left-0 top-full z-50 mt-2 w-full min-w-[240px] max-h-[420px] max-w-[90vw] overflow-y-auto overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl">
             {/* 개인 워크스페이스 섹션 */}
             <div className="p-2">
               <div className="flex items-center justify-between px-3 py-2">
@@ -162,55 +180,55 @@ export default function WorkspaceSwitcher() {
                   {t("personal")}
                 </span>
               </div>
-              {personalWorkspaces.length > 0 ? (
-                personalWorkspaces.map((ws) => (
-                  <button
-                    key={ws.workspace_id}
-                    type="button"
-                    onClick={() => handleSelect(ws)}
-                    className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-all ${
-                      currentWorkspace?.workspace_id === ws.workspace_id
-                        ? "bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-500/20"
-                        : "hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                    }`}
-                  >
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 shadow-sm">
-                      <svg
-                        className="h-4 w-4 text-white"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                        />
-                      </svg>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {ws.name}
-                      </p>
-                    </div>
-                    {currentWorkspace?.workspace_id === ws.workspace_id && (
-                      <svg
-                        className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                    )}
-                  </button>
-                ))
+              {primaryPersonalWorkspace ? (
+                <button
+                  key={primaryPersonalWorkspace.workspace_id}
+                  type="button"
+                  onClick={() => handleSelect(primaryPersonalWorkspace)}
+                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-all ${
+                    currentWorkspace?.workspace_id ===
+                    primaryPersonalWorkspace.workspace_id
+                      ? "bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-500/20"
+                      : "hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                  }`}
+                >
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 shadow-sm">
+                    <svg
+                      className="h-4 w-4 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
+                    </svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
+                      {personalLabel}
+                    </p>
+                  </div>
+                  {currentWorkspace?.workspace_id ===
+                    primaryPersonalWorkspace.workspace_id && (
+                    <svg
+                      className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  )}
+                </button>
               ) : (
                 <p className="px-3 py-2 text-xs text-gray-400">
                   {t("noWorkspaces") || "워크스페이스 없음"}
@@ -268,7 +286,7 @@ export default function WorkspaceSwitcher() {
                           {team.name}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {team.memberCount} {t("members")}
+                          {team.role_name || t("memberRole")} · {team.memberCount} {t("members")}
                         </p>
                       </div>
                       {currentWorkspace?.type === "team" &&
@@ -362,39 +380,7 @@ export default function WorkspaceSwitcher() {
               </p>
             </div>
 
-            <form
-              onSubmit={async (e) => {
-                e.preventDefault();
-                if (!newTeamName.trim()) return;
-
-                try {
-                  setIsCreatingTeam(true);
-                  const response = await fetch("/api/me/teams", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      name: newTeamName.trim(),
-                      description: newTeamDescription.trim() || null,
-                    }),
-                  });
-
-                  if (!response.ok) {
-                    throw new Error("Failed to create team");
-                  }
-
-                  await fetchData();
-                  setShowCreateModal(false);
-                  setNewTeamName("");
-                  setNewTeamDescription("");
-                } catch (error) {
-                  console.error("Failed to create team:", error);
-                  alert(t("createTeamError") || "Failed to create team");
-                } finally {
-                  setIsCreatingTeam(false);
-                }
-              }}
-              className="p-6 space-y-4"
-            >
+            <div className="p-6 space-y-4">
               <div>
                 <label
                   htmlFor="teamName"
@@ -453,10 +439,88 @@ export default function WorkspaceSwitcher() {
                 >
                   {t("cancel") || "Cancel"}
                 </button>
+              </div>
+
+              <div className="grid gap-3 pt-2">
                 <button
-                  type="submit"
+                  type="button"
                   disabled={isCreatingTeam || !newTeamName.trim()}
-                  className="flex-1 rounded-lg bg-blue-600 hover:bg-blue-700 px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                  onClick={async () => {
+                    if (!newTeamName.trim()) return;
+                    try {
+                      setIsCreatingTeam(true);
+                      const response = await fetch("/api/me/teams", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          name: newTeamName.trim(),
+                          description: newTeamDescription.trim() || null,
+                        }),
+                      });
+
+                      if (!response.ok) {
+                        throw new Error("Failed to create team");
+                      }
+
+                      await fetchData();
+                      setShowCreateModal(false);
+                      setNewTeamName("");
+                      setNewTeamDescription("");
+                    } catch (error) {
+                      console.error("Failed to create team:", error);
+                      alert(t("createTeamError") || "Failed to create team");
+                    } finally {
+                      setIsCreatingTeam(false);
+                    }
+                  }}
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {t("useFreeTeamPlan") || "Use Free Team Plan"}
+                </button>
+
+                <button
+                  type="button"
+                  disabled={isCreatingTeam || !newTeamName.trim()}
+                  onClick={async () => {
+                    if (!newTeamName.trim()) return;
+                    try {
+                      setIsCreatingTeam(true);
+                      const response = await fetch("/api/me/teams", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          name: newTeamName.trim(),
+                          description: newTeamDescription.trim() || null,
+                        }),
+                      });
+
+                      if (!response.ok) {
+                        throw new Error("Failed to create team");
+                      }
+
+                      const data = await response.json();
+                      await fetchData();
+                      setShowCreateModal(false);
+                      setNewTeamName("");
+                      setNewTeamDescription("");
+
+                      if (data?.teamId) {
+                        sessionStorage.setItem(
+                          "pending_team_id",
+                          String(data.teamId)
+                        );
+                        router.push(
+                          "/dashboard/settings/billing/plans?owner_type=team"
+                        );
+                      }
+                    } catch (error) {
+                      console.error("Failed to create team:", error);
+                      alert(t("createTeamError") || "Failed to create team");
+                    } finally {
+                      setIsCreatingTeam(false);
+                    }
+                  }}
+                  className="w-full rounded-lg bg-blue-600 hover:bg-blue-700 px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                 >
                   {isCreatingTeam ? (
                     <span className="flex items-center justify-center gap-2">
@@ -482,11 +546,11 @@ export default function WorkspaceSwitcher() {
                       {t("creating") || "Creating..."}
                     </span>
                   ) : (
-                    t("create") || "Create Team"
+                    t("usePaidTeamPlan") || "Use Paid Team Plan"
                   )}
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}

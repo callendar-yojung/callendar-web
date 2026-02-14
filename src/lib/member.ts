@@ -117,3 +117,17 @@ export async function findOrCreateMember(
 
   return createMember(provider, providerId, email);
 }
+
+export async function findMemberByEmailOrNickname(
+  identifier: string
+): Promise<Member | null> {
+  const trimmed = identifier.trim();
+  if (!trimmed) return null;
+
+  const [rows] = await pool.execute<RowDataPacket[]>(
+    `SELECT * FROM members WHERE email = ? OR nickname = ? LIMIT 1`,
+    [trimmed, trimmed]
+  );
+
+  return (rows[0] as Member) || null;
+}

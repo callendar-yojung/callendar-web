@@ -119,6 +119,15 @@ export async function DELETE(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const team = await getTeamById(teamId);
+    if (!team) {
+      return NextResponse.json({ error: "Team not found" }, { status: 404 });
+    }
+
+    if (team.created_by !== user.memberId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const success = await deleteTeam(teamId);
     if (!success) {
       return NextResponse.json({ error: "Team not found" }, { status: 404 });

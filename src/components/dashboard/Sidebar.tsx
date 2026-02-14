@@ -2,7 +2,9 @@
 
 import { Link, usePathname } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import { useSession } from "next-auth/react";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import {
 	DndContext,
 	useSensor,
@@ -14,10 +16,11 @@ import WorkspaceSwitcher from "./WorkspaceSwitcher";
 import UserMenu from "./UserMenu";
 import WorkspaceList from "@/components/dashboard/WorkspaceList";
 
-const navItems = [
+const baseNavItems = [
 	{ key: "overview", href: "/dashboard", icon: "📊" },
 	{ key: "tasks", href: "/dashboard/tasks", icon: "✅" },
 	{ key: "calendar", href: "/dashboard/calendar", icon: "📅" },
+	{ key: "memo", href: "/dashboard/memo", icon: "📝" },
 	{ key: "files", href: "/dashboard/files", icon: "📁" },
 ];
 
@@ -31,9 +34,20 @@ const MIN_WORKSPACE_HEIGHT = 150;
 const MIN_NAV_HEIGHT = 120;
 const DEFAULT_WORKSPACE_HEIGHT = 300;
 
-export default function Sidebar() {
+export default function Sidebar({
+	isMobile = false,
+	mobileOpen = false,
+	onClose,
+}: {
+	isMobile?: boolean;
+	mobileOpen?: boolean;
+	onClose?: () => void;
+}) {
 	const t = useTranslations("dashboard.nav");
 	const pathname = usePathname();
+	const { data: session } = useSession();
+	const { currentWorkspace } = useWorkspace();
+	const [isTeamAdmin, setIsTeamAdmin] = useState(false);
 	const sidebarRef = useRef<HTMLElement>(null);
 	const contentRef = useRef<HTMLDivElement>(null);
 
@@ -74,6 +88,34 @@ export default function Sidebar() {
 			}
 		}
 	}, []);
+
+	useEffect(() => {
+		const checkTeamAdmin = async () => {
+			if (!currentWorkspace || currentWorkspace.type !== "team") {
+				setIsTeamAdmin(false);
+				return;
+			}
+
+			try {
+				const res = await fetch(`/api/teams/${currentWorkspace.owner_id}`);
+				const data = await res.json();
+				const memberId = session?.user?.memberId;
+				setIsTeamAdmin(Boolean(data?.team?.created_by && data.team.created_by === memberId));
+			} catch {
+				setIsTeamAdmin(false);
+			}
+		};
+
+		checkTeamAdmin();
+	}, [currentWorkspace, session?.user?.memberId]);
+
+	const navItems = useMemo(() => {
+		const items = [...baseNavItems];
+		if (isTeamAdmin) {
+			items.push({ key: "teamAdmin", href: "/dashboard/teams", icon: "👥" });
+		}
+		return items;
+	}, [isTeamAdmin]);
 
 	// Save width to localStorage when it changes
 	useEffect(() => {
@@ -169,12 +211,29 @@ export default function Sidebar() {
 		>
 			<aside
 				ref={sidebarRef}
-				style={{ width: `${sidebarWidth}px` }}
-				className="fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-sidebar-border bg-sidebar-background"
+				style={{ width: isMobile ? "80vw" : `${sidebarWidth}px` }}
+				className={`fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-sidebar-border bg-sidebar-background transition-transform ${
+					isMobile
+						? mobileOpen
+							? "translate-x-0"
+							: "-translate-x-full"
+						: "translate-x-0"
+				}`}
 			>
 				{/* Workspace Switcher - Fixed at top */}
 				<div className="flex-shrink-0 p-4">
-					<WorkspaceSwitcher />
+					<div className="flex items-center justify-between">
+						<WorkspaceSwitcher />
+						{isMobile && (
+							<button
+								type="button"
+								onClick={onClose}
+								className="ml-2 rounded border border-border bg-background px-2 py-1 text-xs"
+							>
+								Close
+							</button>
+						)}
+					</div>
 				</div>
 
 				{/* Resizable content area */}
