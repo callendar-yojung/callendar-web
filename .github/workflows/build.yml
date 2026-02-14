@@ -38,6 +38,16 @@ jobs:
       AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
       API_SECRET_KEY: ${{ secrets.API_SECRET_KEY }}
 
+      # PayPal Configuration
+      SENDBOX_CLIENT_ID: ${{ secrets.SENDBOX_CLIENT_ID }}
+      SENDBOX_CLIENT_SECRET: ${{ secrets.SENDBOX_CLIENT_SECRET }}
+      NEXT_PUBLIC_PAYPAL_CLIENT_ID: ${{ secrets.SENDBOX_CLIENT_ID }}
+
+      # NicePay Configuration (Sandbox - Server 승인 모델)
+      NICEPAY_CLIENT_ID: ${{ secrets.NICEPAY_CLIENT_ID }}
+      NICEPAY_SECRET_KEY: ${{ secrets.NICEPAY_SECRET_KEY }}
+      NEXT_PUBLIC_NICEPAY_CLIENT_KEY: ${{ secrets.NICEPAY_CLIENT_ID }}
+
 
     steps:
       # 1️⃣ 코드 가져오기
@@ -116,6 +126,12 @@ jobs:
             AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
             AWS_S3_BUCKET=${{ secrets.AWS_S3_BUCKET }}
             API_SECRET_KEY=${{ secrets.API_SECRET_KEY }}
+            SENDBOX_CLIENT_ID=${{ secrets.SENDBOX_CLIENT_ID }}
+            SENDBOX_CLIENT_SECRET=${{ secrets.SENDBOX_CLIENT_SECRET }}
+            NEXT_PUBLIC_PAYPAL_CLIENT_ID=${{ secrets.SENDBOX_CLIENT_ID }}
+            NICEPAY_CLIENT_ID=${{ secrets.NICEPAY_CLIENT_ID }}
+            NICEPAY_SECRET_KEY=${{ secrets.NICEPAY_SECRET_KEY }}
+            NEXT_PUBLIC_NICEPAY_CLIENT_KEY=${{ secrets.NICEPAY_CLIENT_ID }}
             NODE_ENV=production
             ENVEOF
             EOF
