@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useRouter } from "next/navigation";
 
 export interface Workspace {
   workspace_id: number;
@@ -17,6 +18,7 @@ export interface Workspace {
 export default function WorkspaceList() {
   const t = useTranslations("dashboard");
   const { currentWorkspace, setCurrentWorkspace } = useWorkspace();
+  const router = useRouter();
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
@@ -354,7 +356,10 @@ export default function WorkspaceList() {
                   <>
                     <button
                       type="button"
-                      onClick={() => setCurrentWorkspace(ws)}
+                      onClick={() => {
+                        setCurrentWorkspace(ws);
+                        router.push("/dashboard");
+                      }}
                       onDoubleClick={(e) => {
                         e.preventDefault();
                         handleStartRename(ws);

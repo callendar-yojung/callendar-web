@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/dashboard";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 
 const DEFAULT_SIDEBAR_WIDTH = 256;
+const MOBILE_BREAKPOINT = 1024;
 
 export default function DashboardLayout({
   children,
@@ -12,6 +13,8 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
+  const [isMobile, setIsMobile] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     // Load initial width from localStorage
@@ -32,15 +35,57 @@ export default function DashboardLayout({
     };
   }, []);
 
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < MOBILE_BREAKPOINT;
+      setIsMobile(mobile);
+      if (!mobile) {
+        setMobileOpen(false);
+      }
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   return (
     <WorkspaceProvider>
       <div className="min-h-screen bg-dashboard-background">
-        <Sidebar />
+        <Sidebar
+          isMobile={isMobile}
+          mobileOpen={mobileOpen}
+          onClose={() => setMobileOpen(false)}
+        />
+        {isMobile && mobileOpen && (
+          <button
+            type="button"
+            aria-label="Close sidebar"
+            className="fixed inset-0 z-30 bg-black/40"
+            onClick={() => setMobileOpen(false)}
+          />
+        )}
+        {isMobile && (
+          <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-sidebar-border bg-sidebar-background px-4 py-3">
+            <button
+              type="button"
+              onClick={() => setMobileOpen(true)}
+              className="rounded border border-border bg-background px-2 py-1 text-sm"
+            >
+              Menu
+            </button>
+            <span className="text-sm font-semibold text-foreground">
+              Dashboard
+            </span>
+          </div>
+        )}
         <main
-          style={{ paddingLeft: `${sidebarWidth}px` }}
+          style={{
+            paddingLeft: isMobile ? "0px" : `${sidebarWidth}px`,
+          }}
           className="transition-[padding-left] duration-0"
         >
-          <div className="p-8">{children}</div>
+          <div className={isMobile ? "p-4" : "p-8"}>{children}</div>
         </main>
       </div>
     </WorkspaceProvider>
