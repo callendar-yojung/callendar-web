@@ -149,15 +149,16 @@ CREATE TABLE IF NOT EXISTS plans (
   max_members    INT NOT NULL,
   max_storage_mb INT NOT NULL,
   max_file_size_mb INT NOT NULL DEFAULT 10,  -- 단일 파일 최대 크기
+  plan_type      ENUM('personal','team') NOT NULL DEFAULT 'personal',
   created_at     DATETIME DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 기본 플랜 데이터 삽입
-INSERT INTO plans (name, price, max_members, max_storage_mb, max_file_size_mb, created_at) VALUES
-  ('Basic', 0, 1, 500, 5, NOW()),       -- 무료: 개인용, 500MB, 파일당 5MB
-  ('Pro', 5000, 5, 5000, 25, NOW()),    -- 프로: 5명, 5GB, 파일당 25MB
-  ('Team', 15000, 50, 50000, 100, NOW()),  -- 팀: 50명, 50GB, 파일당 100MB
-  ('Enterprise', 50000, 999, 500000, 500, NOW())  -- 엔터프라이즈: 무제한, 500GB, 파일당 500MB
+INSERT INTO plans (name, price, max_members, max_storage_mb, max_file_size_mb, plan_type, created_at) VALUES
+  ('Basic', 0, 1, 500, 5, 'personal', NOW()),       -- 무료: 개인용, 500MB, 파일당 5MB
+  ('Plus', 5000, 5, 5000, 25, 'personal', NOW()),    -- 프로: 5명, 5GB, 파일당 25MB
+  ('Team', 15000, 50, 50000, 100, 'team', NOW()),  -- 팀: 50명, 50GB, 파일당 100MB
+  ('Enterprise', 50000, 999, 500000, 500, 'team', NOW())  -- 엔터프라이즈: 무제한, 500GB, 파일당 500MB
 ON DUPLICATE KEY UPDATE name=name;
 
 -- 12. 구독 테이블 (팀 또는 개인 단위)
@@ -214,6 +215,24 @@ CREATE TABLE IF NOT EXISTS task_attachments (
 CREATE INDEX idx_task_attachments_task ON task_attachments(task_id);
 CREATE INDEX idx_task_attachments_file ON task_attachments(file_id);
 
+-- 15. 메모 테이블 (개인/팀 개인 메모)
+CREATE TABLE IF NOT EXISTS memos (
+  memo_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  owner_type ENUM('team', 'personal') NOT NULL,
+  owner_id BIGINT NOT NULL,
+  member_id BIGINT NOT NULL,
+  title VARCHAR(200) NOT NULL DEFAULT 'Untitled',
+  content_json LONGTEXT NOT NULL,
+  is_favorite TINYINT(1) NOT NULL DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_owner (owner_type, owner_id),
+  INDEX idx_owner_member (owner_type, owner_id, member_id),
+  INDEX idx_member (member_id),
+  INDEX idx_favorite (is_favorite),
+  INDEX idx_updated (updated_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- 15. 저장소 사용량 테이블 (개인/팀 모두 지원)
 CREATE TABLE IF NOT EXISTS storage_usage (
   owner_type       ENUM('team', 'personal') NOT NULL,
@@ -246,15 +265,15 @@ INSERT INTO admins (username, password, name, email, role, created_at) VALUES
 ON DUPLICATE KEY UPDATE username=username;
 
 
-CREATE TABLE billing_keys (                           
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,           
-    member_id BIGINT NOT NULL,                          
+CREATE TABLE billing_keys (
+    billing_key_id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    member_id BIGINT NOT NULL,
     bid VARCHAR(50) NOT NULL,
-    card_code VARCHAR(10),                              
+    card_code VARCHAR(10),
     card_name VARCHAR(50),
     card_no_masked VARCHAR(20),
     status ENUM('ACTIVE','REMOVED') DEFAULT
   'ACTIVE',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,  
-    INDEX idx_member_status (member_id, status)     
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_member_status (member_id, status)
   );
