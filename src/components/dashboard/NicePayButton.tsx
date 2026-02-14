@@ -17,6 +17,9 @@ interface NicePayButtonProps {
   goodsName: string;
   ownerId: number;
   ownerType: "team" | "personal";
+  buyerName?: string | null;
+  buyerEmail?: string | null;
+  buyerTel?: string | null;
   onError?: (error: string) => void;
 }
 
@@ -26,6 +29,9 @@ export default function NicePayButton({
   goodsName,
   ownerId,
   ownerType,
+  buyerName,
+  buyerEmail,
+  buyerTel,
   onError,
 }: NicePayButtonProps) {
   const t = useTranslations("dashboard.settings.billing.checkout.nicepay");
@@ -66,6 +72,11 @@ export default function NicePayButton({
     const orderId = `PECAL_${ownerId}_${Date.now()}`;
     const returnUrl = `${window.location.origin}/api/nicepay/billing/register?plan_id=${planId}&owner_id=${ownerId}&owner_type=${ownerType}`;
 
+    const buyerInfo =
+      buyerName || buyerEmail || buyerTel
+        ? { buyerName, buyerEmail, buyerTel }
+        : {};
+
     window.AUTHNICE.requestPay({
       clientId: clientKey,
       method: "card",
@@ -73,6 +84,7 @@ export default function NicePayButton({
       amount,
       goodsName,
       returnUrl,
+      ...buyerInfo,
       fnError: (result: { errorMsg?: string }) => {
         setLoading(false);
         onError?.(result.errorMsg || t("error"));

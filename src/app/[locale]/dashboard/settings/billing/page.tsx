@@ -60,6 +60,7 @@ export default function BillingPage() {
 
   // NicePay 결제 성공 배너
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
+  const [showPlanChangeScheduled, setShowPlanChangeScheduled] = useState(false);
 
   // 저장된 카드 정보
   const [savedCard, setSavedCard] = useState<SavedCard | null>(null);
@@ -79,6 +80,10 @@ export default function BillingPage() {
     const params = new URLSearchParams(window.location.search);
     if (params.get("nicepay") === "success") {
       setShowPaymentSuccess(true);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+    if (params.get("plan_change") === "scheduled") {
+      setShowPlanChangeScheduled(true);
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, []);
@@ -159,6 +164,13 @@ export default function BillingPage() {
   };
 
   const handleRemoveCard = async () => {
+    if (!canRemoveCard) {
+      setCancelMessage({
+        type: "error",
+        text: t("removeCardBlocked"),
+      });
+      return;
+    }
     setRemovingCard(true);
     try {
       const res = await fetch("/api/nicepay/billing/remove", {
@@ -290,6 +302,8 @@ export default function BillingPage() {
 
   const isPaidSubscription =
     personalSubscription && personalSubscription.id > 0;
+  const canRemoveCard =
+    !isPaidSubscription || personalSubscription?.plan_price === 0;
 
   if (loading) {
     return (
@@ -325,6 +339,48 @@ export default function BillingPage() {
           <button
             onClick={() => setShowPaymentSuccess(false)}
             className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200"
+          >
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+      )}
+
+      {/* 플랜 변경 예약 배너 */}
+      {showPlanChangeScheduled && (
+        <div className="flex items-center justify-between rounded-lg border border-blue-300 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950">
+          <div className="flex items-center gap-2">
+            <svg
+              className="h-5 w-5 text-blue-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <p className="font-medium text-blue-800 dark:text-blue-200">
+              {t("planChangeScheduled")}
+            </p>
+          </div>
+          <button
+            onClick={() => setShowPlanChangeScheduled(false)}
+            className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
           >
             <svg
               className="h-5 w-5"

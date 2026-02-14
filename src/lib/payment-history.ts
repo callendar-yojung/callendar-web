@@ -70,6 +70,9 @@ export async function getPaymentsByOwner(
   limit = 50,
   offset = 0
 ): Promise<PaymentRecord[]> {
+  const safeLimit = Number.isFinite(limit) ? Math.max(1, Math.min(200, Math.trunc(limit))) : 50;
+  const safeOffset = Number.isFinite(offset) ? Math.max(0, Math.trunc(offset)) : 0;
+
   const [rows] = await pool.execute<RowDataPacket[]>(
     `SELECT
        ph.payment_id, ph.subscription_id, ph.owner_id, ph.owner_type,
@@ -80,8 +83,8 @@ export async function getPaymentsByOwner(
      LEFT JOIN plans p ON ph.plan_id = p.plan_id
      WHERE ph.owner_id = ? AND ph.owner_type = ?
      ORDER BY ph.created_at DESC
-     LIMIT ? OFFSET ?`,
-    [ownerId, ownerType, limit, offset]
+     LIMIT ${safeLimit} OFFSET ${safeOffset}`,
+    [ownerId, ownerType]
   );
 
   return rows as PaymentRecord[];

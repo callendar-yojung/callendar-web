@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     billingKey: {
-      id: billingKey.id,
+      id: billingKey.billing_key_id,
       cardCode: billingKey.card_code,
       cardName: billingKey.card_name,
       cardNoMasked: billingKey.card_no_masked,

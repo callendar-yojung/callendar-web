@@ -3,14 +3,6 @@
 import { Link, usePathname } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
 
-const settingsNav = [
-  { key: "general", href: "/dashboard/settings", icon: "⚙️" },
-  { key: "account", href: "/dashboard/settings/account", icon: "👤" },
-  { key: "privacy", href: "/dashboard/settings/privacy", icon: "🔒" },
-  { key: "billing", href: "/dashboard/settings/billing", icon: "💳" },
-  { key: "usage", href: "/dashboard/settings/usage", icon: "📊" },
-];
-
 export default function SettingsLayout({
   children,
 }: {
@@ -18,6 +10,13 @@ export default function SettingsLayout({
 }) {
   const t = useTranslations("dashboard.settings");
   const pathname = usePathname();
+  const settingsNav = [
+    { key: "general", href: "/dashboard/settings", icon: "⚙️" },
+    { key: "account", href: "/dashboard/settings/account", icon: "👤" },
+    { key: "privacy", href: "/dashboard/settings/privacy", icon: "🔒" },
+    { key: "billing", href: "/dashboard/settings/billing", icon: "💳" },
+    { key: "usage", href: "/dashboard/settings/usage", icon: "📊" },
+  ];
 
   return (
     <div className="space-y-6">

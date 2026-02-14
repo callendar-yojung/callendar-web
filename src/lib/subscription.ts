@@ -15,6 +15,9 @@ export interface Subscription {
   next_payment_date: Date | null;
   billing_key_member_id: number | null;
   retry_count: number;
+  pending_plan_id?: number | null;
+  pending_change_date?: Date | null;
+  ended_reason?: string | null;
   plan_name?: string;
   plan_price?: number;
 }
@@ -30,6 +33,9 @@ const SELECT_COLUMNS = `
   s.next_payment_date,
   s.billing_key_member_id,
   s.retry_count,
+  s.pending_plan_id,
+  s.pending_change_date,
+  s.ended_reason,
   p.name as plan_name,
   p.price as plan_price
 `;
@@ -89,13 +95,67 @@ export async function createSubscription(
   try {
     await connection.beginTransaction();
 
-    // 기존 ACTIVE 구독을 EXPIRED로 변경
-    await connection.execute(
-      `UPDATE subscriptions
-       SET status = 'EXPIRED', ended_at = NOW(), next_payment_date = NULL
-       WHERE owner_id = ? AND owner_type = ? AND status = 'ACTIVE'`,
+    const [planRows] = await connection.execute<RowDataPacket[]>(
+      `SELECT price FROM plans WHERE plan_id = ?`,
+      [planId]
+    );
+    if (planRows.length === 0) {
+      throw new Error("Plan not found");
+    }
+    const newPlanPrice = Number(planRows[0].price || 0);
+
+    const [currentRows] = await connection.execute<RowDataPacket[]>(
+      `SELECT s.subscription_id, s.plan_id, s.next_payment_date, p.price as plan_price
+       FROM subscriptions s
+       LEFT JOIN plans p ON s.plan_id = p.plan_id
+       WHERE s.owner_id = ? AND s.owner_type = ? AND s.status = 'ACTIVE'
+       ORDER BY s.started_at DESC
+       LIMIT 1
+       FOR UPDATE`,
       [ownerId, ownerType]
     );
+
+    if (currentRows.length > 0) {
+      const current = currentRows[0] as {
+        subscription_id: number;
+        plan_id: number;
+        next_payment_date: Date | null;
+        plan_price: number | null;
+      };
+      const currentPrice = Number(current.plan_price || 0);
+
+      // 동일 플랜이면 변경 없음
+      if (current.plan_id === planId) {
+        await connection.commit();
+        return current.subscription_id;
+      }
+
+      // 업그레이드: 즉시 해지 + 신규 구독 생성
+      if (newPlanPrice > currentPrice) {
+        await connection.execute(
+          `UPDATE subscriptions
+           SET status = 'CANCELED',
+               ended_at = NOW(),
+               next_payment_date = NULL,
+               ended_reason = 'UPGRADED',
+               pending_plan_id = NULL,
+               pending_change_date = NULL
+           WHERE subscription_id = ?`,
+          [current.subscription_id]
+        );
+      } else {
+        // 다운그레이드/동일: 다음 결제일에 변경 예약
+        await connection.execute(
+          `UPDATE subscriptions
+           SET pending_plan_id = ?,
+               pending_change_date = next_payment_date
+           WHERE subscription_id = ?`,
+          [planId, current.subscription_id]
+        );
+        await connection.commit();
+        return current.subscription_id;
+      }
+    }
 
     // 새 구독 생성 (next_payment_date = 1개월 뒤)
     const [result] = await connection.execute<ResultSetHeader>(
@@ -120,6 +180,39 @@ export async function createSubscription(
   } finally {
     connection.release();
   }
+}
+
+export async function schedulePlanChange(
+  ownerId: number,
+  ownerType: OwnerType,
+  planId: number
+): Promise<boolean> {
+  const [result] = await pool.execute<ResultSetHeader>(
+    `UPDATE subscriptions
+     SET pending_plan_id = ?, pending_change_date = next_payment_date
+     WHERE owner_id = ? AND owner_type = ? AND status = 'ACTIVE'`,
+    [planId, ownerId, ownerType]
+  );
+
+  return result.affectedRows > 0;
+}
+
+export async function applyPendingPlanChange(
+  subscriptionId: number
+): Promise<boolean> {
+  const [result] = await pool.execute<ResultSetHeader>(
+    `UPDATE subscriptions
+     SET plan_id = pending_plan_id,
+         pending_plan_id = NULL,
+         pending_change_date = NULL
+     WHERE subscription_id = ?
+       AND pending_plan_id IS NOT NULL
+       AND pending_change_date IS NOT NULL
+       AND pending_change_date <= NOW()`,
+    [subscriptionId]
+  );
+
+  return result.affectedRows > 0;
 }
 
 export async function updateSubscriptionStatus(

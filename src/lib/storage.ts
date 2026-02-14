@@ -184,18 +184,19 @@ export async function getActivePlanForOwner(
     };
   }
 
-  // 구독이 없으면 Basic 플랜 반환
-  const [basicPlans] = await pool.execute<RowDataPacket[]>(
-    `SELECT * FROM plans WHERE name = 'Basic' LIMIT 1`
+  const fallbackType = ownerType === "team" ? "team" : "personal";
+  const [fallbackPlans] = await pool.execute<RowDataPacket[]>(
+    `SELECT * FROM plans WHERE plan_type = ? ORDER BY price ASC LIMIT 1`,
+    [fallbackType]
   );
 
-  if (basicPlans.length > 0) {
+  if (fallbackPlans.length > 0) {
     return {
-      plan_id: basicPlans[0].plan_id,
-      name: basicPlans[0].name,
-      max_storage_mb: basicPlans[0].max_storage_mb,
-      max_file_size_mb: basicPlans[0].max_file_size_mb,
-      max_members: basicPlans[0].max_members,
+      plan_id: fallbackPlans[0].plan_id,
+      name: fallbackPlans[0].name,
+      max_storage_mb: fallbackPlans[0].max_storage_mb,
+      max_file_size_mb: fallbackPlans[0].max_file_size_mb,
+      max_members: fallbackPlans[0].max_members,
     };
   }
 

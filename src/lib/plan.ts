@@ -7,6 +7,7 @@ export interface Plan {
   price: number;
   max_members: number;
   max_storage_mb: number;
+  plan_type: "personal" | "team";
   created_at: Date;
 }
 
@@ -18,6 +19,7 @@ export async function getAllPlans(): Promise<Plan[]> {
       price,
       max_members,
       max_storage_mb,
+      plan_type,
       created_at
     FROM plans
     ORDER BY price ASC`
@@ -33,6 +35,7 @@ export async function getPlanById(planId: number): Promise<Plan | null> {
       price,
       max_members,
       max_storage_mb,
+      plan_type,
       created_at
     FROM plans
     WHERE plan_id = ?`,
@@ -48,8 +51,8 @@ export async function createPlan(
   maxStorageMb: number
 ): Promise<number> {
   const [result] = await pool.execute<ResultSetHeader>(
-    `INSERT INTO plans (name, price, max_members, max_storage_mb, created_at)
-     VALUES (?, ?, ?, ?, NOW())`,
+    `INSERT INTO plans (name, price, max_members, max_storage_mb, plan_type, created_at)
+     VALUES (?, ?, ?, ?, 'personal', NOW())`,
     [name, price, maxMembers, maxStorageMb]
   );
   return result.insertId;

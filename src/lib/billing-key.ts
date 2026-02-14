@@ -2,7 +2,7 @@ import pool from "./db";
 import type { RowDataPacket, ResultSetHeader } from "mysql2";
 
 export interface BillingKey {
-  id: number;
+  billing_key_id: number;
   member_id: number;
   bid: string;
   card_code: string;
@@ -38,7 +38,7 @@ export async function getActiveBillingKey(
   memberId: number
 ): Promise<BillingKey | null> {
   const [rows] = await pool.execute<RowDataPacket[]>(
-    `SELECT id, member_id, bid, card_code, card_name, card_no_masked, status, created_at
+    `SELECT billing_key_id, member_id, bid, card_code, card_name, card_no_masked, status, created_at
      FROM billing_keys
      WHERE member_id = ? AND status = 'ACTIVE'
      ORDER BY created_at DESC
@@ -53,7 +53,7 @@ export async function removeBillingKeyById(
   billingKeyId: number
 ): Promise<boolean> {
   const [result] = await pool.execute<ResultSetHeader>(
-    `UPDATE billing_keys SET status = 'REMOVED' WHERE id = ?`,
+    `UPDATE billing_keys SET status = 'REMOVED' WHERE billing_key_id = ?`,
     [billingKeyId]
   );
 

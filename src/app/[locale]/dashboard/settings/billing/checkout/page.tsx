@@ -5,7 +5,6 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLocale } from "next-intl";
 import PayPalButton from "@/components/dashboard/PayPalButton";
-import NicePayButton from "@/components/dashboard/NicePayButton";
 
 interface Plan {
   id: number;
@@ -29,8 +28,19 @@ function CheckoutContent() {
   const nicepayMessage = searchParams.get("message");
 
   const [plan, setPlan] = useState<Plan | null>(null);
+  const [currentPlan, setCurrentPlan] = useState<Plan | null>(null);
+  const [isDowngrade, setIsDowngrade] = useState(false);
   const [loading, setLoading] = useState(true);
   const [ownerName, setOwnerName] = useState<string>("");
+  const [cardNo, setCardNo] = useState("");
+  const [expYear, setExpYear] = useState("");
+  const [expMonth, setExpMonth] = useState("");
+  const [idNo, setIdNo] = useState("");
+  const [cardPw, setCardPw] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string>("");
+  const [hasSavedCard, setHasSavedCard] = useState(false);
+  const [useSavedCard, setUseSavedCard] = useState(true);
 
   const isKorean = locale === "ko";
 
@@ -38,6 +48,8 @@ function CheckoutContent() {
     if (planId && ownerType && ownerId) {
       fetchPlan(Number(planId));
       fetchOwnerInfo(ownerType, Number(ownerId));
+      fetchCurrentPlan(ownerType, Number(ownerId));
+      fetchSavedCard();
     }
   }, [planId, ownerType, ownerId]);
 
@@ -55,20 +67,56 @@ function CheckoutContent() {
 
   const fetchOwnerInfo = async (type: "team" | "personal", id: number) => {
     try {
+      const meRes = await fetch("/api/me/account");
+      const meData = await meRes.json();
+
       if (type === "personal") {
-        const meRes = await fetch("/api/me/account");
-        const meData = await meRes.json();
         setOwnerName(meData.nickname || t("checkout.personal"));
-      } else {
-        const teamsRes = await fetch("/api/me/teams");
-        const teamsData = await teamsRes.json();
-        const team = teamsData.teams?.find((t: any) => t.id === id);
-        setOwnerName(team?.name || t("checkout.team"));
+        return;
       }
+
+      const teamsRes = await fetch("/api/me/teams");
+      const teamsData = await teamsRes.json();
+      const team = teamsData.teams?.find((t: any) => t.id === id);
+      setOwnerName(team?.name || t("checkout.team"));
     } catch (error) {
       console.error("Failed to fetch owner info:", error);
     }
   };
+
+  const fetchCurrentPlan = async (type: "team" | "personal", id: number) => {
+    try {
+      const res = await fetch(
+        `/api/subscriptions?owner_id=${id}&owner_type=${type}&active=true`
+      );
+      const subData = await res.json();
+      if (subData?.plan_id) {
+        const planRes = await fetch(`/api/plans?id=${subData.plan_id}`);
+        const planData = await planRes.json();
+        setCurrentPlan(planData);
+      }
+    } catch (error) {
+      console.error("Failed to fetch current plan:", error);
+    }
+  };
+
+  const fetchSavedCard = async () => {
+    try {
+      const res = await fetch("/api/nicepay/billing/register");
+      const data = await res.json();
+      if (data?.billingKey) {
+        setHasSavedCard(true);
+      }
+    } catch (error) {
+      console.error("Failed to fetch saved card:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (plan && currentPlan) {
+      setIsDowngrade(plan.price <= currentPlan.price);
+    }
+  }, [plan, currentPlan]);
 
   const handlePayPalSuccess = () => {
     alert(t("checkout.nicepay.success"));
@@ -80,9 +128,54 @@ function CheckoutContent() {
     alert(t("checkout.nicepay.error"));
   };
 
-  const handleNicePayError = (errorMsg: string) => {
-    console.error("NicePay Error:", errorMsg);
+  const handleNicePayKeyIn = async () => {
+    setSubmitError("");
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/nicepay/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          planId: plan?.id,
+          ownerId: Number(ownerId),
+          ownerType,
+          cardNo: useSavedCard ? "" : cardNo,
+          expYear: useSavedCard ? "" : expYear,
+          expMonth: useSavedCard ? "" : expMonth,
+          idNo: useSavedCard ? "" : idNo,
+          cardPw: useSavedCard ? "" : cardPw,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setSubmitError(data.error || t("checkout.nicepay.error"));
+        return;
+      }
+
+      if (data?.scheduled) {
+        router.push(`/${locale}/dashboard/settings/billing?plan_change=scheduled`);
+        return;
+      }
+
+      router.push(`/${locale}/dashboard/settings/billing?nicepay=success`);
+    } catch (error) {
+      console.error("NicePay Error:", error);
+      setSubmitError(t("checkout.nicepay.error"));
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  const formatCardNo = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 16);
+    return digits.replace(/(\d{4})(?=\d)/g, "$1 ").trim();
+  };
+
+  const formatTwoDigits = (value: string) =>
+    value.replace(/\D/g, "").slice(0, 2);
+
+  const formatIdNo = (value: string) => value.replace(/\D/g, "").slice(0, 10);
 
   if (loading || !plan || !ownerType || !ownerId) {
     return (
@@ -204,14 +297,129 @@ function CheckoutContent() {
                       {t("checkout.nicepay.description")}
                     </p>
 
-                    <NicePayButton
-                      planId={plan.id}
-                      amount={plan.price}
-                      goodsName={`Pecal ${plan.name}`}
-                      ownerId={Number(ownerId)}
-                      ownerType={ownerType}
-                      onError={handleNicePayError}
-                    />
+                    {isDowngrade && currentPlan && (
+                      <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+                        다음 결제일부터 {plan.name} 플랜으로 변경됩니다.
+                      </div>
+                    )}
+
+                    {hasSavedCard && !isDowngrade && (
+                      <div className="mb-4 rounded-lg border border-border bg-background p-3 text-sm text-foreground">
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={useSavedCard}
+                            onChange={(e) => setUseSavedCard(e.target.checked)}
+                          />
+                          저장된 결제수단으로 결제하기
+                        </label>
+                      </div>
+                    )}
+
+                    {submitError && (
+                      <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                        {submitError}
+                      </div>
+                    )}
+
+                    {!isDowngrade && !useSavedCard && (
+                      <div className="rounded-xl border border-border bg-background p-5">
+                        <div className="mb-4">
+                          <h3 className="text-base font-semibold text-foreground">
+                            카드 정보
+                          </h3>
+                          <p className="text-xs text-muted-foreground">
+                            입력하신 정보는 암호화되어 처리됩니다.
+                          </p>
+                        </div>
+
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-foreground mb-1">
+                              카드번호
+                            </label>
+                            <input
+                              value={formatCardNo(cardNo)}
+                              onChange={(e) => setCardNo(e.target.value)}
+                              inputMode="numeric"
+                              placeholder="0000 0000 0000 0000"
+                              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-sm font-medium text-foreground mb-1">
+                                유효기간(월)
+                              </label>
+                              <input
+                                value={formatTwoDigits(expMonth)}
+                                onChange={(e) => setExpMonth(e.target.value)}
+                                inputMode="numeric"
+                                placeholder="MM"
+                                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-foreground mb-1">
+                                유효기간(년)
+                              </label>
+                              <input
+                                value={formatTwoDigits(expYear)}
+                                onChange={(e) => setExpYear(e.target.value)}
+                                inputMode="numeric"
+                                placeholder="YY"
+                                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-foreground mb-1">
+                              생년월일(YYMMDD) 또는 사업자번호
+                            </label>
+                            <input
+                              value={formatIdNo(idNo)}
+                              onChange={(e) => setIdNo(e.target.value)}
+                              inputMode="numeric"
+                              placeholder="예: 900101 또는 1234567890"
+                              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-foreground mb-1">
+                              카드 비밀번호 앞 2자리
+                            </label>
+                            <input
+                              value={formatTwoDigits(cardPw)}
+                              onChange={(e) => setCardPw(e.target.value)}
+                              inputMode="numeric"
+                              placeholder="**"
+                              type="password"
+                              maxLength={2}
+                              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="mt-4">
+                      <button
+                        type="button"
+                        onClick={handleNicePayKeyIn}
+                        disabled={submitting}
+                        className="w-full rounded-lg bg-blue-600 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {submitting
+                          ? t("checkout.nicepay.subscribing")
+                          : t("checkout.nicepay.subscribeButton")}
+                      </button>
+                      <p className="mt-2 text-xs text-muted-foreground text-center">
+                        매월 자동 결제되며 언제든지 구독을 취소할 수 있습니다.
+                      </p>
+                    </div>
                   </>
                 ) : (
                   <>

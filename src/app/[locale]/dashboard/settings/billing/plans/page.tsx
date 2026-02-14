@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 interface Plan {
   id: number;
@@ -10,6 +10,7 @@ interface Plan {
   price: number;
   max_members: number;
   max_storage_mb: number;
+  plan_type: "personal" | "team";
   created_at: string;
 }
 
@@ -27,18 +28,31 @@ export default function PlansPage() {
   const t = useTranslations("dashboard.settings.billing.plans");
   const tPricing = useTranslations("pricing");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const selectionOwnerType =
+    (searchParams.get("owner_type") as "team" | "personal") || "personal";
+  const selectionOwnerId = searchParams.get("owner_id");
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
 
-  // 개인 구독
-  const [personalSubscription, setPersonalSubscription] =
+  // 현재 구독
+  const [currentSubscription, setCurrentSubscription] =
     useState<Subscription | null>(null);
   const [currentMemberId, setCurrentMemberId] = useState<number | null>(null);
+  const [currentOwnerId, setCurrentOwnerId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (selectionOwnerType !== "team" || selectionOwnerId) return;
+    const pendingTeamId = sessionStorage.getItem("pending_team_id");
+    if (pendingTeamId) {
+      setCurrentOwnerId(Number(pendingTeamId));
+    }
+  }, [selectionOwnerType, selectionOwnerId]);
 
   const fetchData = async () => {
     try {
@@ -56,33 +70,44 @@ export default function PlansPage() {
 
       setPlans(plansData);
 
-      // 현재 사용자 정보 가져오기
-      const meRes = await fetch("/api/me/account");
-      const meData = await meRes.json();
-      const memberId = meData.member_id;
-      setCurrentMemberId(memberId);
+      let ownerId: number | null = null;
 
-      // 개인 활성 구독 가져오기
-      const personalSubRes = await fetch(
-        `/api/subscriptions?owner_id=${memberId}&owner_type=personal&active=true`
-      );
-      const personalSubData = await personalSubRes.json();
+      if (selectionOwnerType === "personal") {
+        const meRes = await fetch("/api/me/account");
+        const meData = await meRes.json();
+        ownerId = meData.member_id;
+        setCurrentMemberId(ownerId);
+      } else if (selectionOwnerId) {
+        ownerId = Number(selectionOwnerId);
+      }
 
-      if (personalSubData && personalSubData.plan_id) {
-        setPersonalSubscription(personalSubData);
-      } else {
-        // Basic 플랜을 기본으로 설정
-        const basicPlan = plansData.find((p: Plan) => p.name === "Basic");
-        if (basicPlan) {
-          setPersonalSubscription({
-            id: 0,
-            owner_id: memberId,
-            owner_type: "personal",
-            plan_id: basicPlan.id,
-            status: "ACTIVE",
-            plan_name: basicPlan.name,
-            plan_price: basicPlan.price,
-          });
+      if (ownerId) {
+        setCurrentOwnerId(ownerId);
+      }
+
+      // 개인 플랜만 현재 구독 조회 (팀 플랜 목록은 오너와 무관하게 표시)
+      if (selectionOwnerType === "personal" && ownerId) {
+        const currentSubRes = await fetch(
+          `/api/subscriptions?owner_id=${ownerId}&owner_type=personal&active=true`
+        );
+        const currentSubData = await currentSubRes.json();
+
+        if (currentSubData && currentSubData.plan_id) {
+          setCurrentSubscription(currentSubData);
+        } else {
+          // Basic 플랜을 기본으로 설정
+          const basicPlan = plansData.find((p: Plan) => p.name === "Basic");
+          if (basicPlan) {
+            setCurrentSubscription({
+              id: 0,
+              owner_id: ownerId,
+              owner_type: "personal",
+              plan_id: basicPlan.id,
+              status: "ACTIVE",
+              plan_name: basicPlan.name,
+              plan_price: basicPlan.price,
+            });
+          }
         }
       }
     } catch (error) {
@@ -93,13 +118,15 @@ export default function PlansPage() {
   };
 
   const handleSelectPlan = async (plan: Plan) => {
-    if (!currentMemberId) return;
+    const ownerId =
+      selectionOwnerType === "personal" ? currentMemberId : currentOwnerId;
+    if (!ownerId) return;
 
     // Basic 플랜은 선택 불가
     if (plan.price === 0) return;
 
     // 현재 가입중인 플랜인지 확인
-    if (personalSubscription && personalSubscription.plan_id === plan.id) {
+    if (currentSubscription && currentSubscription.plan_id === plan.id) {
       return;
     }
 
@@ -107,14 +134,23 @@ export default function PlansPage() {
 
     // 결제 페이지로 이동
     router.push(
-      `/dashboard/settings/billing/checkout?plan_id=${plan.id}&owner_type=personal&owner_id=${currentMemberId}`
+      `/dashboard/settings/billing/checkout?plan_id=${plan.id}&owner_type=${selectionOwnerType}&owner_id=${ownerId}`
     );
   };
 
   // 현재 플랜인지 확인
   const isCurrentPlan = (planId: number) => {
-    return personalSubscription?.plan_id === planId;
+    return currentSubscription?.plan_id === planId;
   };
+
+  const isTeamPlan = (plan: Plan) => {
+    if (plan.plan_type) return plan.plan_type === "team";
+    const name = plan.name.toLowerCase();
+    return name.includes("team") || name.includes("enterprise");
+  };
+
+  const visiblePlans =
+    selectionOwnerType === "team" ? plans.filter(isTeamPlan) : plans;
 
   if (loading) {
     return (
@@ -179,20 +215,24 @@ export default function PlansPage() {
             </div>
             <div>
               <h2 className="text-2xl font-bold text-foreground">
-                {t("personalSection")}
+                {selectionOwnerType === "team"
+                  ? t("teamSection")
+                  : t("personalSection")}
               </h2>
               <p className="text-sm text-muted-foreground">
-                {t("personalDesc")}
+                {selectionOwnerType === "team" ? t("teamDesc") : t("personalDesc")}
               </p>
             </div>
           </div>
 
-          {currentMemberId && (
+          {(
+            selectionOwnerType === "personal" ? currentOwnerId : true
+          ) && (
             <div className="grid gap-6 md:grid-cols-3">
-              {plans.map((plan) => {
+              {visiblePlans.map((plan) => {
                 const isCurrent = isCurrentPlan(plan.id);
                 const isBasic = plan.price === 0;
-                const isTeamPlan = plan.name === "Team";
+                const teamPlan = isTeamPlan(plan);
 
                 return (
                   <div
@@ -202,7 +242,7 @@ export default function PlansPage() {
                         ? "border-green-500 bg-green-50 dark:bg-green-950"
                         : isBasic
                           ? "border-border bg-muted/50 opacity-70"
-                          : isTeamPlan
+                        : teamPlan
                             ? "border-blue-500 bg-blue-50 dark:bg-blue-950"
                             : "border-border bg-card hover:border-blue-300"
                     }`}
@@ -213,7 +253,7 @@ export default function PlansPage() {
                       </div>
                     )}
 
-                    {!isCurrent && isTeamPlan && (
+                    {!isCurrent && teamPlan && (
                       <div className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-blue-600 px-4 py-1 text-xs font-semibold text-white">
                         {tPricing("popular")}
                       </div>
@@ -236,22 +276,24 @@ export default function PlansPage() {
                     </div>
 
                     <ul className="mt-6 space-y-3">
-                      <li className="flex items-center text-sm text-muted-foreground">
-                        <svg
-                          className="mr-2 h-5 w-5 text-green-600"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                        {t("maxMembers", { count: plan.max_members })}
-                      </li>
+                      {teamPlan && (
+                        <li className="flex items-center text-sm text-muted-foreground">
+                          <svg
+                            className="mr-2 h-5 w-5 text-green-600"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                          {t("maxMembers", { count: plan.max_members })}
+                        </li>
+                      )}
                       <li className="flex items-center text-sm text-muted-foreground">
                         <svg
                           className="mr-2 h-5 w-5 text-green-600"
@@ -312,7 +354,7 @@ export default function PlansPage() {
                           ? "cursor-default border border-green-600 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
                           : isBasic
                             ? "cursor-not-allowed border border-border bg-muted text-muted-foreground"
-                            : isTeamPlan
+                          : teamPlan
                               ? "bg-blue-600 text-white hover:bg-blue-700"
                               : "border border-border bg-background text-foreground hover:bg-accent"
                       } disabled:opacity-50`}

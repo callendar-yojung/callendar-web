@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   getDueSubscriptions,
+  applyPendingPlanChange,
   advancePaymentDate,
   incrementRetryCount,
   updateSubscriptionStatus,
 } from "@/lib/subscription";
+import { getPlanById } from "@/lib/plan";
 import { getActiveBillingKey } from "@/lib/billing-key";
 import { approveBilling, generateMoid } from "@/lib/nicepay";
 import { createPaymentRecord } from "@/lib/payment-history";
@@ -49,6 +51,18 @@ export async function POST(request: NextRequest) {
 
     for (const sub of dueSubscriptions) {
       try {
+        if (sub.pending_plan_id) {
+          const applied = await applyPendingPlanChange(sub.id);
+          if (applied) {
+            const updatedPlan = await getPlanById(sub.pending_plan_id);
+            if (updatedPlan) {
+              sub.plan_id = updatedPlan.id;
+              sub.plan_name = updatedPlan.name;
+              sub.plan_price = updatedPlan.price;
+            }
+          }
+        }
+
         // 무료 플랜(가격 0)이면 날짜만 연장
         if (!sub.plan_price || sub.plan_price === 0) {
           await advancePaymentDate(sub.id);

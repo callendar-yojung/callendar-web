@@ -32,7 +32,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // DB에서 빌키 상태 변경
-    await removeBillingKeyById(billingKey.id);
+    await removeBillingKeyById(billingKey.billing_key_id);
 
     return NextResponse.json({
       success: true,
