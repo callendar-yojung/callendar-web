@@ -118,3 +118,14 @@ If your DB predates profile images, add this column:
 ALTER TABLE members
 ADD COLUMN profile_image_url VARCHAR(500) NULL AFTER nickname;
 ```
+
+## Nickname Policy
+- Nicknames are unique (DB unique index).
+- Auto-generated on signup based on locale (ko/en) from `NEXT_LOCALE`.
+- Update checks for duplicates and returns 409 if taken.
+
+### Migration SQL (nickname unique)
+```sql
+ALTER TABLE members
+ADD UNIQUE KEY unique_nickname (nickname);
+```

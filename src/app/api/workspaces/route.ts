@@ -5,6 +5,7 @@ import {
   createTeamWorkspace,
   getWorkspaceById,
 } from "@/lib/workspace";
+import { getTeamById, getPermissionsByMember } from "@/lib/team";
 
 // POST /api/workspaces - 새 워크스페이스 생성
 export async function POST(request: NextRequest) {
@@ -53,6 +54,16 @@ export async function POST(request: NextRequest) {
       workspaceId = await createPersonalWorkspace(owner_id, name.trim());
     } else {
       // Team workspace: owner_id is the team_id
+      const team = await getTeamById(owner_id);
+      if (!team) {
+        return NextResponse.json({ error: "Team not found" }, { status: 404 });
+      }
+      if (team.created_by !== user.memberId) {
+        const permissions = await getPermissionsByMember(team.id, user.memberId);
+        if (!permissions.includes("WORKSPACE_CREATE")) {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+      }
       workspaceId = await createTeamWorkspace(
         owner_id,
         name.trim(),

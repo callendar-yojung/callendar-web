@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
-import { TasksDemo } from "@/components/dashboard";
+import { TasksPanel } from "@/components/dashboard";
 
 export async function generateMetadata({
   params,
@@ -29,7 +29,7 @@ export default async function TasksPage() {
         </p>
       </div>
 
-      <TasksDemo />
+      <TasksPanel />
     </div>
   );
 }

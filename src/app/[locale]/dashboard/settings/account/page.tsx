@@ -13,6 +13,8 @@ export default function AccountPage() {
   );
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [checkResult, setCheckResult] = useState<"ok" | "taken" | "idle">("idle");
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -23,6 +25,10 @@ export default function AccountPage() {
       setProfileImageUrl(session.user.profileImageUrl ?? null);
     }
   }, [session?.user?.nickname, session?.user?.profileImageUrl]);
+
+  useEffect(() => {
+    setCheckResult("idle");
+  }, [nickname]);
 
   const handleSave = async () => {
     if (!nickname.trim()) return;
@@ -50,6 +56,30 @@ export default function AccountPage() {
       alert("Failed to update account");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleCheckNickname = async () => {
+    if (!nickname.trim()) return;
+    setChecking(true);
+    setCheckResult("idle");
+    try {
+      const res = await fetch(
+        `/api/me/account/nickname-check?nickname=${encodeURIComponent(nickname.trim())}`
+      );
+      const data = await res.json();
+      if (res.ok && data?.available === true) {
+        setCheckResult("ok");
+      } else if (res.ok && data?.available === false) {
+        setCheckResult("taken");
+      } else {
+        alert(data.error || "Failed to check nickname");
+      }
+    } catch (error) {
+      console.error("Failed to check nickname:", error);
+      alert("Failed to check nickname");
+    } finally {
+      setChecking(false);
     }
   };
 
@@ -180,12 +210,28 @@ export default function AccountPage() {
             <label className="block text-sm font-medium text-subtle-foreground">
               {t("name")}
             </label>
-            <input
-              type="text"
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            />
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <input
+                type="text"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+              <button
+                type="button"
+                onClick={handleCheckNickname}
+                disabled={checking || !nickname.trim()}
+                className="rounded-lg border border-border px-3 py-2 text-sm text-muted-foreground hover:text-foreground disabled:opacity-50"
+              >
+                {checking ? t("checking") : t("checkNickname")}
+              </button>
+            </div>
+            {checkResult === "ok" && (
+              <p className="mt-1 text-xs text-green-600">{t("nicknameAvailable")}</p>
+            )}
+            {checkResult === "taken" && (
+              <p className="mt-1 text-xs text-destructive">{t("nicknameTaken")}</p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-subtle-foreground">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Sidebar } from "@/components/dashboard";
+import { Sidebar, NotificationsBell } from "@/components/dashboard";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 
 const DEFAULT_SIDEBAR_WIDTH = 256;
@@ -77,6 +77,9 @@ export default function DashboardLayout({
             <span className="text-sm font-semibold text-foreground">
               Dashboard
             </span>
+            <div className="ml-auto">
+              <NotificationsBell />
+            </div>
           </div>
         )}
         <main
@@ -85,6 +88,11 @@ export default function DashboardLayout({
           }}
           className="transition-[padding-left] duration-0"
         >
+          {!isMobile && (
+            <div className="sticky top-0 z-20 flex justify-end border-b border-border bg-background/80 px-8 py-3 backdrop-blur">
+              <NotificationsBell />
+            </div>
+          )}
           <div className={isMobile ? "p-4" : "p-8"}>{children}</div>
         </main>
       </div>

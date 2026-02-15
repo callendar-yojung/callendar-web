@@ -25,7 +25,7 @@ interface Task {
   tags?: Tag[];
 }
 
-export default function CalendarDemo() {
+export default function CalendarPanel() {
   const t = useTranslations("dashboard");
   const locale = useLocale();
   const { currentWorkspace } = useWorkspace();

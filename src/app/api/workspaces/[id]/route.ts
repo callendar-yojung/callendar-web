@@ -6,6 +6,7 @@ import {
   deleteWorkspace,
   checkWorkspaceAccess,
 } from "@/lib/workspace";
+import { getTeamById, getPermissionsByMember } from "@/lib/team";
 
 // GET /api/workspaces/[id] - 워크스페이스 상세 조회
 export async function GET(
@@ -78,6 +79,24 @@ export async function PATCH(
       );
     }
 
+    const workspace = await getWorkspaceById(workspaceId);
+    if (!workspace) {
+      return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
+    }
+
+    if (workspace.type === "team") {
+      const team = await getTeamById(workspace.owner_id);
+      if (!team) {
+        return NextResponse.json({ error: "Team not found" }, { status: 404 });
+      }
+      if (team.created_by !== user.memberId) {
+        const permissions = await getPermissionsByMember(team.id, user.memberId);
+        if (!permissions.includes("WORKSPACE_EDIT")) {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+      }
+    }
+
     const success = await updateWorkspaceName(workspaceId, name.trim());
 
     if (!success) {
@@ -121,6 +140,24 @@ export async function DELETE(
     const hasAccess = await checkWorkspaceAccess(workspaceId, user.memberId);
     if (!hasAccess) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const workspace = await getWorkspaceById(workspaceId);
+    if (!workspace) {
+      return NextResponse.json({ error: "Workspace not found" }, { status: 404 });
+    }
+
+    if (workspace.type === "team") {
+      const team = await getTeamById(workspace.owner_id);
+      if (!team) {
+        return NextResponse.json({ error: "Team not found" }, { status: 404 });
+      }
+      if (team.created_by !== user.memberId) {
+        const permissions = await getPermissionsByMember(team.id, user.memberId);
+        if (!permissions.includes("WORKSPACE_DELETE")) {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+      }
     }
 
     const success = await deleteWorkspace(workspaceId);

@@ -21,6 +21,13 @@ interface TeamMember {
   role_id: number | null;
 }
 
+interface MemberSearchResult {
+  member_id: number;
+  nickname: string | null;
+  email: string | null;
+  profile_image_url: string | null;
+}
+
 interface Plan {
   id: number;
   name: string;
@@ -64,6 +71,10 @@ export default function TeamSettingsPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [currentMemberId, setCurrentMemberId] = useState<number | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [memberSearch, setMemberSearch] = useState<MemberSearchResult[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<MemberSearchResult | null>(null);
 
   const selectedTeam = useMemo(
     () => teams.find((t) => t.id === selectedTeamId) || null,
@@ -202,16 +213,51 @@ export default function TeamSettingsPage() {
     fetchRolePermissions();
   }, [selectedTeamId, selectedRoleId]);
 
+  useEffect(() => {
+    const trimmed = identifier.trim();
+    if (selectedMember && trimmed !== (selectedMember.nickname || selectedMember.email || "")) {
+      setSelectedMember(null);
+    }
+    if (!trimmed || trimmed.length < 2) {
+      setMemberSearch([]);
+      return;
+    }
+    const isEmail = trimmed.includes("@");
+    const controller = new AbortController();
+    const id = window.setTimeout(async () => {
+      setSearchLoading(true);
+      try {
+        const res = await fetch(
+          `/api/members/search?q=${encodeURIComponent(trimmed)}&type=${isEmail ? "email" : "nickname"}`,
+          { signal: controller.signal }
+        );
+        const data = await res.json();
+        if (res.ok) {
+          setMemberSearch(data.results || []);
+          setShowSearch(true);
+        } else {
+          setMemberSearch([]);
+        }
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 250);
+    return () => {
+      controller.abort();
+      window.clearTimeout(id);
+    };
+  }, [identifier]);
+
   const handleAddMember = async () => {
-    if (!selectedTeamId || !identifier.trim()) return;
+    if (!selectedTeamId || !selectedMember) return;
     setActionLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/teams/${selectedTeamId}/members`, {
+      const res = await fetch(`/api/teams/${selectedTeamId}/invitations`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          identifier: identifier.trim(),
+          invited_member_id: selectedMember.member_id,
           role_id: memberRoleId,
         }),
       });
@@ -221,9 +267,10 @@ export default function TeamSettingsPage() {
         return;
       }
       setIdentifier("");
-      const membersRes = await fetch(`/api/teams/${selectedTeamId}/members`);
-      const membersData = await membersRes.json();
-      setMembers(membersData.members || []);
+      setSelectedMember(null);
+      setMemberSearch([]);
+      setShowSearch(false);
+      setError(t("inviteSent"));
     } catch (err) {
       console.error(err);
       setError(t("errorAddMember"));
@@ -575,12 +622,86 @@ export default function TeamSettingsPage() {
                     </p>
 
                     <div className="mt-4 grid gap-2 md:grid-cols-3">
-                      <input
-                        value={identifier}
-                        onChange={(e) => setIdentifier(e.target.value)}
-                        placeholder={t("memberPlaceholder")}
-                        className="rounded-lg border border-border bg-background px-3 py-2 text-sm md:col-span-2"
-                      />
+                      <div className="relative md:col-span-2">
+                        <input
+                          value={identifier}
+                          onChange={(e) => setIdentifier(e.target.value)}
+                          placeholder={t("memberPlaceholder")}
+                          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                          onFocus={() => {
+                            if (memberSearch.length > 0) setShowSearch(true);
+                          }}
+                        />
+                        {selectedMember && (
+                          <div className="mt-2 flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-2 py-1 text-xs">
+                            <span className="text-muted-foreground">{t("selectedMember")}</span>
+                            <span className="truncate font-medium text-foreground">
+                              {selectedMember.nickname || selectedMember.email}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedMember(null);
+                                setIdentifier("");
+                              }}
+                              className="text-muted-foreground hover:text-foreground"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        )}
+                        {showSearch && (memberSearch.length > 0 || searchLoading) && (
+                          <div className="absolute z-20 mt-1 w-full rounded-lg border border-border bg-popover shadow-lg">
+                            {searchLoading ? (
+                              <div className="px-3 py-2 text-xs text-muted-foreground">
+                                {t("searching")}
+                              </div>
+                            ) : (
+                              memberSearch.map((item) => (
+                                <button
+                                  key={item.member_id}
+                                  type="button"
+                                  onClick={() => {
+                                    const useEmail = identifier.includes("@");
+                                    setSelectedMember(item);
+                                    setIdentifier(
+                                      useEmail
+                                        ? item.email || item.nickname || ""
+                                        : item.nickname || item.email || ""
+                                    );
+                                    setShowSearch(false);
+                                  }}
+                                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted"
+                                >
+                                  <div className="h-7 w-7 overflow-hidden rounded-full bg-muted">
+                                    {item.profile_image_url ? (
+                                      <img
+                                        src={item.profile_image_url}
+                                        alt={item.nickname || "User"}
+                                        className="h-full w-full object-cover"
+                                      />
+                                    ) : (
+                                      <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
+                                        {(item.nickname || item.email || "U").charAt(0)}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <div className="truncate font-medium text-foreground">
+                                      {item.nickname || item.email || `#${item.member_id}`}
+                                    </div>
+                                    {item.email && (
+                                      <div className="truncate text-xs text-muted-foreground">
+                                        {item.email}
+                                      </div>
+                                    )}
+                                  </div>
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        )}
+                      </div>
                       <select
                         value={memberRoleId ?? ""}
                         onChange={(e) =>
@@ -604,7 +725,7 @@ export default function TeamSettingsPage() {
                         onClick={handleAddMember}
                         disabled={
                           actionLoading ||
-                          !identifier.trim() ||
+                          !selectedMember ||
                           !memberRoleId ||
                           (memberLimit > 0 && members.length >= memberLimit)
                         }

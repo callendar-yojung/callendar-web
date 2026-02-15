@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
-import { updateMemberNickname, updateMemberProfileImage } from "@/lib/member";
+import { isNicknameReserved, isNicknameTaken, updateMemberNickname, updateMemberProfileImage } from "@/lib/member";
 import { deleteFromS3, extractS3KeyFromUrl } from "@/lib/s3";
 import pool from "@/lib/db";
 import type { RowDataPacket } from "mysql2";
@@ -71,6 +71,19 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json(
         { error: "Nickname must be 200 characters or less" },
         { status: 400 }
+      );
+    }
+    if (isNicknameReserved(trimmed)) {
+      return NextResponse.json(
+        { error: "Nickname is reserved" },
+        { status: 400 }
+      );
+    }
+    const taken = await isNicknameTaken(trimmed, user.memberId);
+    if (taken) {
+      return NextResponse.json(
+        { error: "Nickname already taken" },
+        { status: 409 }
       );
     }
     await updateMemberNickname(user.memberId, trimmed);

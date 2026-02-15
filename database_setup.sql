@@ -11,7 +11,8 @@ CREATE TABLE IF NOT EXISTS members (
   phone_number   VARCHAR(100),
   nickname       VARCHAR(200),     -- 자동 생성
   profile_image_url VARCHAR(500),  -- 프로필 이미지 URL
-  UNIQUE KEY unique_provider (provider, provider_id)  -- 중복 가입 방지
+  UNIQUE KEY unique_provider (provider, provider_id),  -- 중복 가입 방지
+  UNIQUE KEY unique_nickname (nickname)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 인덱스 추가
@@ -70,6 +71,40 @@ CREATE TABLE IF NOT EXISTS team_role_permissions (
   FOREIGN KEY (permission_id) REFERENCES permissions(permission_id),
   FOREIGN KEY (team_role_id) REFERENCES team_roles(team_role_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 6.5 팀 초대 테이블
+CREATE TABLE IF NOT EXISTS team_invitations (
+  invitation_id      BIGINT PRIMARY KEY AUTO_INCREMENT,
+  team_id            BIGINT NOT NULL,
+  invited_member_id  BIGINT NOT NULL,
+  invited_by         BIGINT NOT NULL,
+  status             ENUM('PENDING', 'ACCEPTED', 'DECLINED') DEFAULT 'PENDING',
+  created_at         DATETIME,
+  responded_at       DATETIME,
+  UNIQUE KEY unique_team_invitation (team_id, invited_member_id),
+  FOREIGN KEY (team_id) REFERENCES teams(team_id),
+  FOREIGN KEY (invited_member_id) REFERENCES members(member_id),
+  FOREIGN KEY (invited_by) REFERENCES members(member_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 6.6 알림 테이블
+CREATE TABLE IF NOT EXISTS notifications (
+  notification_id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  member_id       BIGINT NOT NULL,
+  type            VARCHAR(50) NOT NULL,
+  title           VARCHAR(200),
+  message         VARCHAR(500),
+  payload_json    TEXT,
+  source_type     VARCHAR(50),
+  source_id       BIGINT,
+  is_read         TINYINT DEFAULT 0,
+  created_at      DATETIME,
+  read_at         DATETIME,
+  FOREIGN KEY (member_id) REFERENCES members(member_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX idx_notifications_member ON notifications(member_id, is_read, created_at);
+CREATE INDEX idx_notifications_source ON notifications(source_type, source_id);
 
 -- 7. 워크스페이스 테이블
 CREATE TABLE IF NOT EXISTS workspaces (

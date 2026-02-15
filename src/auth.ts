@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import Kakao from "next-auth/providers/kakao";
 import Google from "next-auth/providers/google";
 import { findOrCreateMember } from "./lib/member";
+import { cookies } from "next/headers";
 
 declare module "next-auth" {
   interface Session {
@@ -33,11 +34,22 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (!account) return false;
 
       try {
+        let locale: "ko" | "en" = "en";
+        try {
+          const cookieStore = await cookies();
+          const cookieLocale = cookieStore.get("NEXT_LOCALE")?.value;
+          if (cookieLocale === "ko" || cookieLocale === "en") {
+            locale = cookieLocale;
+          }
+        } catch {
+          // ignore if cookies not available
+        }
         const member = await findOrCreateMember(
           account.provider,
           account.providerAccountId,
           user.email ?? null,
-          user.image ?? null
+          user.image ?? null,
+          locale
         );
 
         (user as Record<string, unknown>).memberId = member.member_id;

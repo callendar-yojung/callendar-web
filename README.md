@@ -135,3 +135,8 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 - Billing plans split into personal/team pages with team selection.
 - Memo loading UX improved to avoid stuck loading state.
 - Mini calendar shows task colors.
+
+### Nicknames
+- Nicknames are unique (DB constraint).
+- Auto-generated on signup based on locale (`NEXT_LOCALE`).
+- Updates reject duplicates with 409.

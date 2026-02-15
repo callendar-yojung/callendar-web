@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
-import { CalendarDemo } from "@/components/dashboard";
+import { CalendarPanel } from "@/components/dashboard";
 
 export async function generateMetadata({
   params,
@@ -29,7 +29,7 @@ export default async function CalendarPage() {
         </p>
       </div>
 
-      <CalendarDemo />
+      <CalendarPanel />
     </div>
   );
 }

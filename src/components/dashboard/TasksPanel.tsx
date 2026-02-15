@@ -66,7 +66,7 @@ const getContentText = (value?: string | null) => {
   }
 };
 
-export default function TasksDemo() {
+export default function TasksPanel() {
   const t = useTranslations("dashboard.tasks");
   const locale = useLocale();
   const router = useRouter();

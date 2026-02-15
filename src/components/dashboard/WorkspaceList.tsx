@@ -91,7 +91,12 @@ export default function WorkspaceList() {
         setIsAdding(false);
         await fetchWorkspaces();
       } else {
-        console.error("Failed to create workspace");
+        const data = await response.json();
+        if (response.status === 403) {
+          alert(t("workspace.permissionDenied"));
+        } else {
+          alert(data.error || t("workspace.createWorkSpaceError"));
+        }
       }
     } catch (e) {
       console.error("Failed to create workspace", e);
@@ -135,7 +140,11 @@ export default function WorkspaceList() {
         await fetchWorkspaces();
       } else {
         const data = await res.json();
-        alert(data.error || "Failed to rename workspace");
+        if (res.status === 403) {
+          alert(t("workspace.permissionDenied"));
+        } else {
+          alert(data.error || "Failed to rename workspace");
+        }
       }
     } catch (e) {
       console.error("Failed to rename workspace", e);
@@ -174,7 +183,11 @@ export default function WorkspaceList() {
         await fetchWorkspaces();
       } else {
         const data = await res.json();
-        alert(data.error || "Failed to delete workspace");
+        if (res.status === 403) {
+          alert(t("workspace.permissionDenied"));
+        } else {
+          alert(data.error || "Failed to delete workspace");
+        }
       }
     } catch (e) {
       console.error("Failed to delete workspace", e);
