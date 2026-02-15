@@ -100,3 +100,21 @@ Reuse these patterns:
 ---
 
 If you want this file customized (diagrams, specific flows, DB ERD, or endpoints list), say what level of detail you want.
+
+## Recent Additions
+- Profile images for members (stored as `members.profile_image_url`).
+- User profile image upload/removal via account settings.
+- User menu shows avatar when available; fallback to initials.
+- Timezone settings: auto-detect, manual override, update to current location.
+- Billing plans split into personal/team pages.
+- Team selection for team plan changes on billing page.
+- Memo loading state split to avoid infinite loading UX.
+- Mini calendar shows task colors.
+
+## Schema Note
+If your DB predates profile images, add this column:
+
+```sql
+ALTER TABLE members
+ADD COLUMN profile_image_url VARCHAR(500) NULL AFTER nickname;
+```

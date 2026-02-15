@@ -10,6 +10,7 @@ declare module "next-auth" {
       memberId: number;
       email?: string | null;
       nickname?: string | null;
+      profileImageUrl?: string | null;
       provider: string;
     };
   }
@@ -33,13 +34,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
       try {
         const member = await findOrCreateMember(
-            account.provider,
-            account.providerAccountId,
-            user.email ?? null
+          account.provider,
+          account.providerAccountId,
+          user.email ?? null,
+          user.image ?? null
         );
 
         (user as Record<string, unknown>).memberId = member.member_id;
         (user as Record<string, unknown>).nickname = member.nickname;
+        (user as Record<string, unknown>).profileImageUrl =
+          member.profile_image_url ?? user.image ?? null;
         (user as Record<string, unknown>).provider = account.provider;
 
         return true;
@@ -52,10 +56,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (user && account) {
         token.memberId = (user as Record<string, unknown>).memberId as number;
         token.nickname = (user as Record<string, unknown>).nickname as string;
+        token.profileImageUrl = (user as Record<string, unknown>).profileImageUrl as string | null;
         token.provider = account.provider;
       }
-      if (trigger === "update" && session?.nickname) {
-        token.nickname = session.nickname;
+      if (trigger === "update" && session) {
+        if (session.nickname) token.nickname = session.nickname;
+        if (session.profileImageUrl !== undefined) {
+          token.profileImageUrl = session.profileImageUrl as string | null;
+        }
       }
       return token;
     },
@@ -63,6 +71,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       session.user.id = token.sub!;
       session.user.memberId = token.memberId as number;
       session.user.nickname = token.nickname as string;
+      session.user.profileImageUrl = (token.profileImageUrl as string | null) ?? null;
       session.user.provider = token.provider as string;
       return session;
     },

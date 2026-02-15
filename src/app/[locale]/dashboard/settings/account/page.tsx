@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useSession } from "next-auth/react";
 
@@ -8,8 +8,21 @@ export default function AccountPage() {
   const t = useTranslations("dashboard.settings.account");
   const { data: session, update: updateSession } = useSession();
   const [nickname, setNickname] = useState(session?.user?.nickname || "");
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(
+    session?.user?.profileImageUrl || null
+  );
+  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (session?.user?.nickname) {
+      setNickname(session.user.nickname);
+    }
+    if (session?.user?.profileImageUrl !== undefined) {
+      setProfileImageUrl(session.user.profileImageUrl ?? null);
+    }
+  }, [session?.user?.nickname, session?.user?.profileImageUrl]);
 
   const handleSave = async () => {
     if (!nickname.trim()) return;
@@ -40,6 +53,70 @@ export default function AccountPage() {
     }
   };
 
+  const handleProfileImageUpload = async (file: File) => {
+    if (!session?.user?.memberId) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("owner_type", "personal");
+      formData.append("owner_id", String(session.user.memberId));
+
+      const res = await fetch("/api/files/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Failed to upload image");
+        return;
+      }
+
+      const nextUrl = data?.file?.file_path as string | undefined;
+      if (!nextUrl) return;
+
+      const updateRes = await fetch("/api/me/account", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profile_image_url: nextUrl }),
+      });
+      const updateData = await updateRes.json();
+      if (!updateRes.ok) {
+        alert(updateData.error || "Failed to update profile image");
+        return;
+      }
+
+      setProfileImageUrl(nextUrl);
+      await updateSession({ profileImageUrl: nextUrl });
+    } catch (error) {
+      console.error("Failed to upload profile image:", error);
+      alert("Failed to upload profile image");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleProfileImageRemove = async () => {
+    try {
+      const res = await fetch("/api/me/account", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profile_image_url: null }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Failed to remove profile image");
+        return;
+      }
+      setProfileImageUrl(null);
+      await updateSession({ profileImageUrl: null });
+    } catch (error) {
+      console.error("Failed to remove profile image:", error);
+      alert("Failed to remove profile image");
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* 프로필 정보 */}
@@ -52,6 +129,53 @@ export default function AccountPage() {
         </p>
 
         <div className="mt-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-subtle-foreground">
+              {t("profileImage")}
+            </label>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t("profileImageDesc")}
+            </p>
+            <div className="mt-3 flex items-center gap-4">
+              <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border border-border bg-muted">
+                {profileImageUrl ? (
+                  <img
+                    src={profileImageUrl}
+                    alt={nickname || "User"}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span className="text-lg font-semibold text-muted-foreground">
+                    {nickname?.charAt(0) || "U"}
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="cursor-pointer rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground hover:bg-muted">
+                  {uploading ? t("uploading") : t("uploadImage")}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) handleProfileImageUpload(file);
+                    }}
+                    disabled={uploading}
+                  />
+                </label>
+                {profileImageUrl && (
+                  <button
+                    type="button"
+                    onClick={handleProfileImageRemove}
+                    className="rounded-lg border border-destructive px-3 py-2 text-sm text-destructive hover:bg-destructive/10"
+                  >
+                    {t("removeImage")}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
           <div>
             <label className="block text-sm font-medium text-subtle-foreground">
               {t("name")}

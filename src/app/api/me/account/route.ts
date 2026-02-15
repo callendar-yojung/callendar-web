@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
-import { updateMemberNickname } from "@/lib/member";
+import { updateMemberNickname, updateMemberProfileImage } from "@/lib/member";
+import { deleteFromS3, extractS3KeyFromUrl } from "@/lib/s3";
 import pool from "@/lib/db";
 import type { RowDataPacket } from "mysql2";
 
@@ -20,6 +21,7 @@ export async function GET(request: NextRequest) {
         email,
         phone_number,
         nickname,
+        profile_image_url,
         created_at,
         lasted_at
       FROM members
@@ -50,15 +52,20 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { nickname } = body;
+  const { nickname, profile_image_url } = body;
 
-    if (!nickname || typeof nickname !== "string" || nickname.trim().length === 0) {
-      return NextResponse.json(
-        { error: "Nickname is required" },
-        { status: 400 }
-      );
-    }
+  const hasNickname = typeof nickname === "string" && nickname.trim().length > 0;
+  const hasProfileImage =
+    typeof profile_image_url === "string" || profile_image_url === null;
 
+  if (!hasNickname && !hasProfileImage) {
+    return NextResponse.json(
+      { error: "No updatable fields provided" },
+      { status: 400 }
+    );
+  }
+
+  if (hasNickname) {
     const trimmed = nickname.trim();
     if (trimmed.length > 200) {
       return NextResponse.json(
@@ -66,11 +73,32 @@ export async function PATCH(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    // 닉네임 업데이트
     await updateMemberNickname(user.memberId, trimmed);
+  }
 
-    return NextResponse.json({ success: true, nickname: trimmed });
+  if (hasProfileImage) {
+    const [rows] = await pool.execute<RowDataPacket[]>(
+      "SELECT profile_image_url FROM members WHERE member_id = ?",
+      [user.memberId]
+    );
+    const currentProfileUrl =
+      rows.length > 0 ? (rows[0] as { profile_image_url: string | null }).profile_image_url : null;
+
+    await updateMemberProfileImage(user.memberId, profile_image_url);
+
+    if (currentProfileUrl && currentProfileUrl !== profile_image_url) {
+      const key = extractS3KeyFromUrl(currentProfileUrl);
+      if (key) {
+        await deleteFromS3(key);
+      }
+    }
+  }
+
+  return NextResponse.json({
+    success: true,
+    nickname: hasNickname ? nickname.trim() : undefined,
+    profile_image_url: hasProfileImage ? profile_image_url : undefined,
+  });
   } catch (error) {
     console.error("Failed to update account:", error);
     return NextResponse.json(

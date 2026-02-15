@@ -13,15 +13,33 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
 
   const [language, setLanguage] = useState(locale);
-  const [timezone, setTimezone] = useState("Asia/Seoul");
+  const [timezone, setTimezone] = useState("UTC");
+  const [autoTimezone, setAutoTimezone] = useState(true);
+  const [detectedTimezone, setDetectedTimezone] = useState("UTC");
   const [notifications, setNotifications] = useState(true);
 
   // 쿠키에서 설정 불러오기
   useEffect(() => {
     const savedTimezone = getCookie("timezone");
+    const savedTimezoneAuto = getCookie("timezone_auto");
     const savedNotifications = getCookie("notifications");
 
-    if (savedTimezone) setTimezone(savedTimezone);
+    const browserTz =
+      Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    setDetectedTimezone(browserTz);
+
+    if (savedTimezoneAuto) {
+      setAutoTimezone(savedTimezoneAuto === "true");
+    } else {
+      setAutoTimezone(true);
+    }
+
+    if (savedTimezone) {
+      setTimezone(savedTimezone);
+    } else {
+      setTimezone(browserTz);
+      setCookie("timezone", browserTz);
+    }
     if (savedNotifications) setNotifications(savedNotifications === "true");
   }, []);
 
@@ -52,6 +70,25 @@ export default function SettingsPage() {
   const handleTimezoneChange = (newTimezone: string) => {
     setTimezone(newTimezone);
     setCookie("timezone", newTimezone);
+  };
+
+  const handleAutoTimezoneToggle = () => {
+    const next = !autoTimezone;
+    setAutoTimezone(next);
+    setCookie("timezone_auto", String(next));
+    if (next) {
+      const browserTz =
+        Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+      setDetectedTimezone(browserTz);
+      handleTimezoneChange(browserTz);
+    }
+  };
+
+  const handleUseCurrentTimezone = () => {
+    const browserTz =
+      Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    setDetectedTimezone(browserTz);
+    handleTimezoneChange(browserTz);
   };
 
   // 테마 변경
@@ -103,24 +140,83 @@ export default function SettingsPage() {
           </div>
 
           {/* 타임존 */}
-          <div className="flex items-center justify-between border-b border-border pb-4">
-            <div>
-              <label className="text-sm font-medium text-card-foreground">
-                {t("general.timezone")}
-              </label>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {t("general.timezoneDesc")}
-              </p>
+          <div className="border-b border-border pb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="text-sm font-medium text-card-foreground">
+                  {t("general.timezone")}
+                </label>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {t("general.timezoneDesc")}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t("general.timezoneDetected")}: {detectedTimezone}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleUseCurrentTimezone}
+                className="rounded-lg border border-border px-3 py-2 text-xs text-muted-foreground hover:text-foreground"
+              >
+                {t("general.useCurrentTimezone")}
+              </button>
             </div>
-            <select
-              value={timezone}
-              onChange={(e) => handleTimezoneChange(e.target.value)}
-              className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              <option value="Asia/Seoul">Seoul (GMT+9)</option>
-              <option value="America/New_York">New_York GMT-5)</option>
-              <option value="Europe/London">Rundon (GMT+0)</option>
-            </select>
+
+            <div className="mt-3 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-card-foreground">
+                  {t("general.timezoneAuto")}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t("general.timezoneAutoDesc")}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleAutoTimezoneToggle}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
+                  autoTimezone ? "bg-blue-600" : "bg-muted"
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    autoTimezone ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
+
+            <div className="mt-3 flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                {t("general.timezoneManual")}
+              </p>
+              <select
+                value={timezone}
+                onChange={(e) => handleTimezoneChange(e.target.value)}
+                disabled={autoTimezone}
+                className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
+              >
+                {[
+                  detectedTimezone,
+                  "UTC",
+                  "Asia/Seoul",
+                  "Asia/Tokyo",
+                  "Asia/Singapore",
+                  "America/Los_Angeles",
+                  "America/New_York",
+                  "Europe/London",
+                  "Europe/Berlin",
+                  "Australia/Sydney",
+                ]
+                  .filter(Boolean)
+                  .filter((value, idx, arr) => arr.indexOf(value) === idx)
+                  .map((value) => (
+                    <option key={value} value={value}>
+                      {value}
+                    </option>
+                  ))}
+              </select>
+            </div>
           </div>
 
           {/* 테마 */}

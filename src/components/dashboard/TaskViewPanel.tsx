@@ -163,7 +163,7 @@ export default function TaskViewPanel({
             )}
             {onStatusChange && (
               <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                상태 변경
+                {t("statusChange")}
                 <select
                   value={task.status || "TODO"}
                   onChange={(e) => onStatusChange(e.target.value as TaskViewData["status"])}
@@ -208,10 +208,10 @@ export default function TaskViewPanel({
 
         {task.tag_ids && task.tag_ids.length > 0 && (
           <div>
-            <h3 className="text-sm font-medium text-subtle-foreground mb-2 flex items-center gap-2">
-              <TagIcon className="h-4 w-4" />
-              태그
-            </h3>
+          <h3 className="text-sm font-medium text-subtle-foreground mb-2 flex items-center gap-2">
+            <TagIcon className="h-4 w-4" />
+            {t("tags")}
+          </h3>
             <div className="flex flex-wrap gap-2">
               {task.tag_ids.map(tagId => {
                 const tag = availableTags.find(t => t.tag_id === tagId);
@@ -244,17 +244,17 @@ export default function TaskViewPanel({
             />
           ) : (
             <div className="text-sm text-muted-foreground italic">
-              {t("noContent") || "내용이 없습니다"}
+              {t("noContent")}
             </div>
           )}
         </div>
 
         <div className="mt-4">
           <h3 className="text-sm font-medium text-subtle-foreground mb-2">
-            첨부파일
+            {t("attachments")}
           </h3>
           {loadingAttachments ? (
-            <p className="text-sm text-muted-foreground">불러오는 중...</p>
+            <p className="text-sm text-muted-foreground">{t("loading")}</p>
           ) : attachments.length > 0 ? (
             <div className="space-y-2">
               {attachments.map((att) => (
@@ -278,7 +278,7 @@ export default function TaskViewPanel({
             </div>
           ) : (
             <p className="text-sm text-muted-foreground italic">
-              첨부된 파일이 없습니다
+              {t("noAttachments")}
             </p>
           )}
         </div>
@@ -304,7 +304,7 @@ export default function TaskViewPanel({
             className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 inline-flex items-center gap-2"
           >
             <PencilLine className="h-4 w-4" />
-            {t("edit") || "수정"}
+            {t("edit")}
           </button>
         </div>
       </div>

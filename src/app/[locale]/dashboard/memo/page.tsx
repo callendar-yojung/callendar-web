@@ -27,7 +27,8 @@ export default function MemoPage() {
   const [favoriteOnly, setFavoriteOnly] = useState(false);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isListLoading, setIsListLoading] = useState(true);
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const saveTimerRef = useRef<number | null>(null);
 
@@ -44,7 +45,7 @@ export default function MemoPage() {
 
     const fetchMemos = async () => {
       try {
-        setIsLoading(true);
+        setIsListLoading(true);
         const params = new URLSearchParams({
           owner_type: ownerType,
           owner_id: String(ownerId),
@@ -64,11 +65,17 @@ export default function MemoPage() {
         if (!selectedMemoId && list.length > 0) {
           setSelectedMemoId(list[0].memo_id);
         }
+
+        if (list.length === 0) {
+          setSelectedMemoId(null);
+          setContent(null);
+          setTitle("");
+        }
       } catch {
         setMemos([]);
         setTotal(0);
       } finally {
-        setIsLoading(false);
+        setIsListLoading(false);
       }
     };
 
@@ -84,7 +91,7 @@ export default function MemoPage() {
 
     const fetchMemoDetail = async () => {
       try {
-        setIsLoading(true);
+        setIsDetailLoading(true);
         const res = await fetch(
           `/api/memos/${selectedMemoId}?owner_type=${ownerType}&owner_id=${ownerId}`
         );
@@ -100,7 +107,7 @@ export default function MemoPage() {
         setContent({ type: "doc", content: [{ type: "paragraph" }] });
         setTitle(t("untitled"));
       } finally {
-        setIsLoading(false);
+        setIsDetailLoading(false);
       }
     };
 
@@ -162,6 +169,7 @@ export default function MemoPage() {
 
   const handleCreateMemo = async () => {
     if (!ownerType || !ownerId) return;
+    setIsDetailLoading(true);
     const res = await fetch("/api/memos", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -172,12 +180,19 @@ export default function MemoPage() {
         content: { type: "doc", content: [{ type: "paragraph" }] },
       }),
     });
+    if (!res.ok) {
+      setIsDetailLoading(false);
+      return;
+    }
     const data = await res.json();
     if (data?.memo_id) {
       setSelectedMemoId(Number(data.memo_id));
       setPage(1);
+      setContent({ type: "doc", content: [{ type: "paragraph" }] });
+      setTitle(t("untitled"));
       await refreshList();
     }
+    setIsDetailLoading(false);
   };
 
   const handleDeleteMemo = async (memoId: number) => {
@@ -292,7 +307,7 @@ export default function MemoPage() {
             </div>
 
             <div className="mt-4 space-y-2">
-              {isLoading ? (
+              {isListLoading ? (
                 <p className="text-sm text-muted-foreground">{t("loading")}</p>
               ) : memos.length === 0 ? (
                 <p className="text-sm text-muted-foreground">{t("noMemos")}</p>
@@ -371,7 +386,15 @@ export default function MemoPage() {
           </div>
 
           <div>
-            {isLoading || !content ? (
+            {isDetailLoading ? (
+              <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
+                {t("loading")}
+              </div>
+            ) : !selectedMemoId ? (
+              <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
+                {t("noMemos")}
+              </div>
+            ) : !content ? (
               <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
                 {t("loading")}
               </div>

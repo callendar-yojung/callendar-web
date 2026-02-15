@@ -472,7 +472,7 @@ export async function getTasksWithTitlesByMonth(
   workspaceId: number,
   year: number,
   month: number
-): Promise<{ date: string; tasks: { id: number; title: string; start_time: string; end_time: string }[] }[]> {
+): Promise<{ date: string; tasks: { id: number; title: string; start_time: string; end_time: string; color: string | null }[] }[]> {
   // start_time is stored as user's local time, so we can query by date directly
   const lastDay = new Date(year, month, 0).getDate();
   const monthStart = `${year}-${String(month).padStart(2, '0')}-01 00:00:00`;
@@ -482,6 +482,7 @@ export async function getTasksWithTitlesByMonth(
     `SELECT
        t.id,
        t.title,
+       t.color,
        t.start_time,
        t.end_time
      FROM tasks t
@@ -503,6 +504,7 @@ export async function getTasksWithTitlesByMonth(
     acc[dateStr].push({
       id: row.id,
       title: row.title,
+      color: row.color || null,
       start_time: row.start_time,
       end_time: row.end_time
     });
@@ -511,7 +513,7 @@ export async function getTasksWithTitlesByMonth(
 
   return Object.entries(grouped).map(([date, tasks]) => ({
     date,
-    tasks: tasks as { id: number; title: string; start_time: string; end_time: string }[]
+    tasks: tasks as { id: number; title: string; start_time: string; end_time: string; color: string | null }[]
   }));
 }
 

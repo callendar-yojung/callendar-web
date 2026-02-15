@@ -10,6 +10,7 @@ export default function UserMenu() {
   const tNav = useTranslations("dashboard.nav");
   const [isOpen, setIsOpen] = useState(false);
   const [isLangOpen, setIsLangOpen] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const { data: session } = useSession();
   const pathname = usePathname();
@@ -60,7 +61,7 @@ export default function UserMenu() {
   const bottomItems = [
     {
       key: "upgrade",
-      href: "#",
+      href: "/dashboard/settings/billing/plans",
       icon: (
         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
@@ -70,7 +71,7 @@ export default function UserMenu() {
     },
     {
       key: "download",
-      href: "#",
+      href: "/download",
       icon: (
         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -91,10 +92,19 @@ export default function UserMenu() {
   return (
     <div ref={menuRef} className="relative">
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-          <span className="text-sm font-medium text-muted-foreground">
-            {session?.user?.nickname?.charAt(0) || "U"}
-          </span>
+        <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-muted">
+          {session?.user?.profileImageUrl && !avatarError ? (
+            <img
+              src={session.user.profileImageUrl}
+              alt={session.user.nickname || "User"}
+              className="h-full w-full object-cover"
+              onError={() => setAvatarError(true)}
+            />
+          ) : (
+            <span className="text-sm font-medium text-muted-foreground">
+              {session?.user?.nickname?.charAt(0) || "U"}
+            </span>
+          )}
         </div>
         <div className="flex-1 min-w-0">
           <p className="truncate text-sm font-medium text-foreground">

@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS members (
   email          VARCHAR(200),
   phone_number   VARCHAR(100),
   nickname       VARCHAR(200),     -- 자동 생성
+  profile_image_url VARCHAR(500),  -- 프로필 이미지 URL
   UNIQUE KEY unique_provider (provider, provider_id)  -- 중복 가입 방지
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

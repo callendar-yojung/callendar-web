@@ -9,6 +9,7 @@ interface TaskWithTitle {
   title: string;
   start_time: Date;
   end_time: Date;
+  color?: string | null;
 }
 
 interface CalendarDateTask {
@@ -185,8 +186,13 @@ export default function MiniCalendar() {
                           className={`text-[8px] leading-tight truncate w-full px-0.5 rounded ${
                             isToday(day) 
                               ? "bg-primary-foreground/20 text-primary-foreground" 
-                              : "bg-primary/10 text-primary"
+                              : "text-primary"
                           }`}
+                          style={
+                            !isToday(day) && task.color
+                              ? { backgroundColor: task.color, color: "#fff" }
+                              : undefined
+                          }
                           title={task.title}
                         >
                           {task.title}

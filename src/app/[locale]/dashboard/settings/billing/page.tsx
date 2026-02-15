@@ -42,6 +42,11 @@ interface PaymentRecord {
   created_at: string;
 }
 
+interface Team {
+  id: number;
+  name: string;
+}
+
 export default function BillingPage() {
   const t = useTranslations("dashboard.settings.billing");
   const router = useRouter();
@@ -49,6 +54,9 @@ export default function BillingPage() {
     useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [memberId, setMemberId] = useState<number | null>(null);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null);
+  const [teamsLoading, setTeamsLoading] = useState(false);
 
   // 구독 취소 관련 state
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
@@ -74,6 +82,7 @@ export default function BillingPage() {
   useEffect(() => {
     fetchCurrentSubscription();
     fetchBillingKey();
+    fetchTeams();
   }, []);
 
   useEffect(() => {
@@ -131,6 +140,23 @@ export default function BillingPage() {
       console.error("Failed to fetch subscription:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTeams = async () => {
+    setTeamsLoading(true);
+    try {
+      const res = await fetch("/api/me/teams");
+      const data = await res.json();
+      const list: Team[] = data?.teams || [];
+      setTeams(list);
+      if (list.length > 0) {
+        setSelectedTeamId((prev) => (prev ? prev : list[0].id));
+      }
+    } catch (error) {
+      console.error("Failed to fetch teams:", error);
+    } finally {
+      setTeamsLoading(false);
     }
   };
 
@@ -502,7 +528,12 @@ export default function BillingPage() {
             )}
             <button
               type="button"
-              onClick={() => router.push("/dashboard/settings/billing/plans")}
+              onClick={() => {
+                if (!memberId) return;
+                router.push(
+                  `/dashboard/settings/billing/plans/personal?owner_id=${memberId}`
+                );
+              }}
               className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
             >
               {isPaidSubscription ? t("changePlan") : t("upgrade")}
@@ -541,7 +572,7 @@ export default function BillingPage() {
         )}
       </div>
 
-      {/* 팀 구독 - 준비 중 */}
+      {/* 팀 구독 */}
       <div className="rounded-lg border border-border bg-card p-6">
         <div className="mb-2 flex items-center gap-2">
           <div className="rounded-full bg-purple-100 p-1.5 dark:bg-purple-900">
@@ -559,10 +590,52 @@ export default function BillingPage() {
               />
             </svg>
           </div>
-          <p className="text-sm text-muted-foreground">
-            {t("teamComingSoon")}
-          </p>
+          <h2 className="text-lg font-semibold text-card-foreground">
+            {t("teamSubscription")}
+          </h2>
         </div>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {t("teamSubscriptionDesc")}
+        </p>
+
+        {teamsLoading ? (
+          <div className="mt-4 text-sm text-muted-foreground">
+            {t("teamLoading")}
+          </div>
+        ) : teams.length === 0 ? (
+          <div className="mt-4 rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
+            {t("teamNoTeams")}
+          </div>
+        ) : (
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <label className="text-sm text-muted-foreground">
+              {t("teamSelectLabel")}
+            </label>
+            <select
+              value={selectedTeamId ?? ""}
+              onChange={(e) => setSelectedTeamId(Number(e.target.value))}
+              className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+            >
+              {teams.map((team) => (
+                <option key={team.id} value={team.id}>
+                  {team.name}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => {
+                if (!selectedTeamId) return;
+                router.push(
+                  `/dashboard/settings/billing/plans/team?owner_id=${selectedTeamId}`
+                );
+              }}
+              className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+            >
+              {t("teamGo")}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 결제 수단 */}

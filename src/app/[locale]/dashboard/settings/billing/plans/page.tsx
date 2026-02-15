@@ -1,16 +1,5 @@
-import { Suspense } from "react";
-import PlansClient from "./PlansClient";
+import { redirect } from "next/navigation";
 
 export default function PlansPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="flex items-center justify-center p-12">
-          <div className="text-muted-foreground">Loading...</div>
-        </div>
-      }
-    >
-      <PlansClient />
-    </Suspense>
-  );
+  redirect("/dashboard/settings/billing/plans/personal");
 }

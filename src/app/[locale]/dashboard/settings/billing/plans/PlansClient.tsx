@@ -24,13 +24,20 @@ interface Subscription {
   plan_price?: number;
 }
 
-export default function PlansClient() {
+interface Team {
+  id: number;
+  name: string;
+}
+
+export default function PlansClient({ mode = "combined" }: { mode?: "personal" | "team" | "combined" }) {
   const t = useTranslations("dashboard.settings.billing.plans");
   const tPricing = useTranslations("pricing");
   const router = useRouter();
   const searchParams = useSearchParams();
   const selectionOwnerType =
-    (searchParams.get("owner_type") as "team" | "personal") || "personal";
+    mode === "combined"
+      ? ((searchParams.get("owner_type") as "team" | "personal") || "personal")
+      : mode;
   const selectionOwnerId = searchParams.get("owner_id");
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,10 +47,31 @@ export default function PlansClient() {
     useState<Subscription | null>(null);
   const [currentMemberId, setCurrentMemberId] = useState<number | null>(null);
   const [currentOwnerId, setCurrentOwnerId] = useState<number | null>(null);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    const fetchTeams = async () => {
+      try {
+        const res = await fetch("/api/me/teams");
+        const data = await res.json();
+        const list: Team[] = data?.teams || [];
+        setTeams(list);
+        if (!selectedTeamId && list.length > 0) {
+          setSelectedTeamId(list[0].id);
+        }
+      } catch {
+        setTeams([]);
+      }
+    };
+    if (mode !== "personal") {
+      fetchTeams();
+    }
+  }, [selectedTeamId, mode]);
 
   useEffect(() => {
     if (selectionOwnerType !== "team" || selectionOwnerId) return;
@@ -141,8 +169,9 @@ export default function PlansClient() {
     return name.includes("team") || name.includes("enterprise");
   };
 
-  const visiblePlans =
-    selectionOwnerType === "team" ? plans.filter(isTeamPlan) : plans;
+  const visiblePlans = selectionOwnerType === "team"
+    ? plans.filter(isTeamPlan)
+    : plans.filter((plan) => !isTeamPlan(plan));
 
   if (loading) {
     return (
@@ -186,6 +215,7 @@ export default function PlansClient() {
           </p>
         </div>
 
+        {selectionOwnerType !== "team" && (
         <div className="mb-12">
           <div className="mb-6 flex items-center gap-3">
             <h2 className="text-2xl font-bold">{t("personalTitle")}</h2>
@@ -247,6 +277,112 @@ export default function PlansClient() {
             })}
           </div>
         </div>
+        )}
+
+        {selectionOwnerType === "team" && (
+        <div className="mb-12">
+          <div className="mb-6 flex items-center gap-3">
+            <h2 className="text-2xl font-bold">{t("teamSection")}</h2>
+            <span className="text-sm text-muted-foreground">
+              {t("teamDesc")}
+            </span>
+          </div>
+
+          {teams.length === 0 ? (
+            <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
+              {t("teamNoTeams")}
+            </div>
+          ) : (
+            <div className="mb-6 flex flex-wrap items-center gap-3">
+              <label className="text-sm text-muted-foreground">
+                {t("teamSelectLabel")}
+              </label>
+              <select
+                value={selectedTeamId ?? ""}
+                onChange={(e) => setSelectedTeamId(Number(e.target.value))}
+                className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+              >
+                {teams.map((team) => (
+                  <option key={team.id} value={team.id}>
+                    {team.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!selectedTeamId) return;
+                  router.push(
+                    `/dashboard/settings/billing/plans?owner_type=team&owner_id=${selectedTeamId}`
+                  );
+                }}
+                className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+              >
+                {t("teamGo")}
+              </button>
+            </div>
+          )}
+
+          {selectionOwnerType === "team" && selectedTeamId ? (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {visiblePlans.map((plan) => {
+                const isCurrent = isCurrentPlan(plan.id);
+                const isSelected = selectedPlanId === plan.id;
+
+                return (
+                  <div
+                    key={plan.id}
+                    className={`rounded-2xl border p-6 shadow-sm transition-all hover:shadow-md ${
+                      isCurrent ? "border-primary bg-primary/5" : "border-border"
+                    }`}
+                  >
+                    <div className="mb-4">
+                      <h3 className="text-xl font-semibold">{plan.name}</h3>
+                      <div className="mt-2 flex items-baseline gap-2">
+                        <span className="text-3xl font-bold">
+                          {plan.price === 0 ? "무료" : `₩${plan.price.toLocaleString()}`}
+                        </span>
+                        {plan.price > 0 && (
+                          <span className="text-sm text-muted-foreground">/월</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <ul className="mb-6 space-y-2 text-sm text-muted-foreground">
+                      <li>멤버 {plan.max_members}명</li>
+                      <li>스토리지 {plan.max_storage_mb}MB</li>
+                    </ul>
+
+                    <button
+                      onClick={() => handleSelectPlan(plan)}
+                      disabled={isCurrent || plan.price === 0}
+                      className={`w-full rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                        isCurrent
+                          ? "bg-primary text-white"
+                          : plan.price === 0
+                          ? "bg-muted text-muted-foreground"
+                          : "bg-blue-600 text-white hover:bg-blue-700"
+                      }`}
+                    >
+                      {isCurrent
+                        ? t("currentPlan")
+                        : plan.price === 0
+                        ? t("freePlan")
+                        : isSelected
+                        ? t("processing")
+                        : t("select")}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
+              {t("teamGuide")}
+            </div>
+          )}
+        </div>
+        )}
       </div>
     </div>
   );

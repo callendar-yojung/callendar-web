@@ -10,6 +10,7 @@ export interface Member {
   email: string | null;
   phone_number: string | null;
   nickname: string | null;
+  profile_image_url?: string | null;
 }
 
 function generateRandomNickname(): string {
@@ -41,7 +42,8 @@ export async function findMemberByProvider(
 export async function createMember(
   provider: string,
   providerId: string,
-  email: string | null
+  email: string | null,
+  profileImageUrl?: string | null
 ): Promise<Member> {
   const connection = await pool.getConnection();
   try {
@@ -52,9 +54,9 @@ export async function createMember(
 
     // 1. 회원 생성
     const [result] = await connection.execute<ResultSetHeader>(
-      `INSERT INTO members (provider, provider_id, email, nickname, created_at, lasted_at)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [provider, providerId, email, nickname, now, now]
+      `INSERT INTO members (provider, provider_id, email, nickname, profile_image_url, created_at, lasted_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [provider, providerId, email, nickname, profileImageUrl ?? null, now, now]
     );
 
     const insertId = result.insertId;
@@ -77,6 +79,7 @@ export async function createMember(
       phone_number: null,
       created_at: now,
       lasted_at: now,
+      profile_image_url: profileImageUrl ?? null,
     };
   } catch (error) {
     await connection.rollback();
@@ -106,16 +109,30 @@ export async function updateMemberNickname(
 export async function findOrCreateMember(
   provider: string,
   providerId: string,
-  email: string | null
+  email: string | null,
+  profileImageUrl?: string | null
 ): Promise<Member> {
   const existingMember = await findMemberByProvider(provider, providerId);
 
   if (existingMember) {
+    if (!existingMember.profile_image_url && profileImageUrl) {
+      await updateMemberProfileImage(existingMember.member_id, profileImageUrl);
+    }
     await updateMemberLastLogin(existingMember.member_id);
     return existingMember;
   }
 
-  return createMember(provider, providerId, email);
+  return createMember(provider, providerId, email, profileImageUrl);
+}
+
+export async function updateMemberProfileImage(
+  memberId: number,
+  profileImageUrl: string | null
+): Promise<void> {
+  await pool.execute(
+    "UPDATE members SET profile_image_url = ? WHERE member_id = ?",
+    [profileImageUrl, memberId]
+  );
 }
 
 export async function findMemberByEmailOrNickname(
