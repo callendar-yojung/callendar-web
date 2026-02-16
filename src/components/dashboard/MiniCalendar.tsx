@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import Button from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 interface TaskWithTitle {
   id: number;
@@ -105,44 +107,34 @@ export default function MiniCalendar() {
 
   if (isLoading) {
     return (
-      <div className="rounded-xl border border-border bg-background p-6">
+      <Card className="p-6">
         <div className="flex items-center justify-center py-8">
           <div className="text-muted-foreground">Loading...</div>
         </div>
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div className="rounded-xl border border-border bg-background p-6">
+    <Card className="p-6">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-lg font-semibold text-foreground">
           {t("title")}
         </h2>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handlePrevMonth}
-            className="rounded-lg p-1 hover:bg-muted"
-            aria-label="Previous month"
-          >
+          <Button size="sm" onClick={handlePrevMonth} aria-label="Previous month">
             <svg className="h-4 w-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
-          </button>
+          </Button>
           <span className="text-sm font-medium text-foreground">
             {currentDate.toLocaleDateString(locale === "ko" ? "ko-KR" : "en-US", { year: "numeric", month: "long" })}
           </span>
-          <button
-            type="button"
-            onClick={handleNextMonth}
-            className="rounded-lg p-1 hover:bg-muted"
-            aria-label="Next month"
-          >
+          <Button size="sm" onClick={handleNextMonth} aria-label="Next month">
             <svg className="h-4 w-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -228,7 +220,7 @@ export default function MiniCalendar() {
             {upcomingDates.map((dateTask) => (
               <div
                 key={dateTask.date}
-                className="rounded-lg border border-border p-3 space-y-1"
+                className="ui-card p-3 space-y-1"
               >
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-foreground">
@@ -261,6 +253,6 @@ export default function MiniCalendar() {
           </div>
         )}
       </div>
-    </div>
+    </Card>
   );
 }

@@ -5,6 +5,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import Button from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 interface Tag {
   tag_id: number;
@@ -289,7 +291,7 @@ export default function TasksPanel() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
           <button
               onClick={() => handleFilterStatusChange("all")}
-              className={`rounded-lg border p-4 text-left transition-colors ${
+              className={`ui-card p-4 text-left transition-colors ${
                   filterStatus === "all"
                       ? "border-primary bg-primary/10"
                       : "border-border bg-card hover:bg-hover"
@@ -300,7 +302,7 @@ export default function TasksPanel() {
           </button>
           <button
               onClick={() => handleFilterStatusChange("TODO")}
-              className={`rounded-lg border p-4 text-left transition-colors ${
+              className={`ui-card p-4 text-left transition-colors ${
                   filterStatus === "TODO"
                       ? "border-status-todo-foreground bg-status-todo"
                       : "border-border bg-card hover:bg-hover"
@@ -311,7 +313,7 @@ export default function TasksPanel() {
           </button>
           <button
               onClick={() => handleFilterStatusChange("IN_PROGRESS")}
-              className={`rounded-lg border p-4 text-left transition-colors ${
+              className={`ui-card p-4 text-left transition-colors ${
                   filterStatus === "IN_PROGRESS"
                       ? "border-status-progress-foreground bg-status-progress"
                       : "border-border bg-card hover:bg-hover"
@@ -322,7 +324,7 @@ export default function TasksPanel() {
           </button>
           <button
               onClick={() => handleFilterStatusChange("DONE")}
-              className={`rounded-lg border p-4 text-left transition-colors ${
+              className={`ui-card p-4 text-left transition-colors ${
                   filterStatus === "DONE"
                       ? "border-status-done-foreground bg-status-done"
                       : "border-border bg-card hover:bg-hover"
@@ -354,16 +356,13 @@ export default function TasksPanel() {
                 <option value="status">{t("filter.sortByStatus")}</option>
               </select>
             </div>
-            <button
-                onClick={handleOpenCreateModal}
-                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-            >
+            <Button variant="primary" size="lg" onClick={handleOpenCreateModal}>
               + {t("addTask")}
-            </button>
+            </Button>
           </div>
 
           {/* 날짜 범위 필터 */}
-          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card p-3">
+          <div className="ui-card flex flex-wrap items-center gap-3 p-3">
             <div className="flex items-center gap-2">
               <svg className="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -386,15 +385,12 @@ export default function TasksPanel() {
               />
             </div>
             {(startDate || endDate) && (
-                <button
-                    onClick={clearDateFilter}
-                    className="flex items-center gap-1 rounded-lg px-2 py-1 text-sm text-muted-foreground transition-colors hover:bg-hover hover:text-foreground"
-                >
+                <Button size="sm" onClick={clearDateFilter} className="flex items-center gap-1">
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                   {t("filter.reset")}
-                </button>
+                </Button>
             )}
             {(startDate || endDate) && (
                 <span className="ml-auto text-sm text-muted-foreground">
@@ -407,17 +403,17 @@ export default function TasksPanel() {
         {/* 태스크 목록 */}
         <div className="space-y-3">
           {filteredTasks.length === 0 ? (
-              <div className="rounded-lg border border-border bg-card p-12 text-center">
+              <Card className="p-12 text-center">
                 <p className="text-muted-foreground">{t("filter.noTasks")}</p>
-              </div>
+              </Card>
           ) : (
               filteredTasks.map((task) => {
                 const taskPriority = task.priority || "medium";
                 return (
-                  <div
+                  <Card
                       key={task.id}
                       onClick={() => handleTaskClick(task)}
-                      className={`rounded-lg border-l-4 border border-border bg-card p-4 transition-shadow hover:shadow-md cursor-pointer ${priorityStyles[taskPriority]}`}
+                      className={`border-l-4 p-4 transition-shadow hover:shadow-md cursor-pointer ${priorityStyles[taskPriority]}`}
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
@@ -478,7 +474,7 @@ export default function TasksPanel() {
                         </select>
                       </div>
                     </div>
-                  </div>
+                  </Card>
                 );
               })
           )}
@@ -486,7 +482,7 @@ export default function TasksPanel() {
 
         {/* 하단: 페이지 크기 + 페이지네이션 */}
         {total > 0 && (
-          <div className="rounded-lg border border-border bg-card px-6 py-3 flex items-center justify-between">
+          <Card className="px-6 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="text-xs text-muted-foreground">
                 {t("filter.tasksCount", { count: total })}
@@ -504,61 +500,37 @@ export default function TasksPanel() {
             </div>
             {totalPages > 1 && (
               <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => setPage(1)}
-                  disabled={page === 1}
-                  className="rounded px-2 py-1 text-sm text-muted-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                >
+                <Button size="sm" onClick={() => setPage(1)} disabled={page === 1}>
                   «
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPage(page - 1)}
-                  disabled={page === 1}
-                  className="rounded px-2 py-1 text-sm text-muted-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                >
+                </Button>
+                <Button size="sm" onClick={() => setPage(page - 1)} disabled={page === 1}>
                   ‹
-                </button>
+                </Button>
                 {(() => {
                   const pages: number[] = [];
                   const start = Math.max(1, page - 2);
                   const end = Math.min(totalPages, page + 2);
                   for (let i = start; i <= end; i++) pages.push(i);
                   return pages.map((p) => (
-                    <button
+                    <Button
                       key={p}
-                      type="button"
                       onClick={() => setPage(p)}
-                      className={`rounded px-3 py-1 text-sm transition-colors ${
-                        p === page
-                          ? "bg-primary text-primary-foreground"
-                          : "text-muted-foreground hover:bg-muted"
-                      }`}
+                      variant={p === page ? "primary" : "muted"}
+                      size="sm"
                     >
                       {p}
-                    </button>
+                    </Button>
                   ));
                 })()}
-                <button
-                  type="button"
-                  onClick={() => setPage(page + 1)}
-                  disabled={page === totalPages}
-                  className="rounded px-2 py-1 text-sm text-muted-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                >
+                <Button size="sm" onClick={() => setPage(page + 1)} disabled={page === totalPages}>
                   ›
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPage(totalPages)}
-                  disabled={page === totalPages}
-                  className="rounded px-2 py-1 text-sm text-muted-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                >
+                </Button>
+                <Button size="sm" onClick={() => setPage(totalPages)} disabled={page === totalPages}>
                   »
-                </button>
+                </Button>
               </div>
             )}
-          </div>
+          </Card>
         )}
 
       </div>

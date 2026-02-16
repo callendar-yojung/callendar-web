@@ -2,6 +2,7 @@
 
 import { Link, usePathname } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
+import { Settings, User, Shield, CreditCard, ChartBar } from "lucide-react";
 
 export default function SettingsLayout({
   children,
@@ -11,11 +12,11 @@ export default function SettingsLayout({
   const t = useTranslations("dashboard.settings");
   const pathname = usePathname();
   const settingsNav = [
-    { key: "general", href: "/dashboard/settings", icon: "⚙️" },
-    { key: "account", href: "/dashboard/settings/account", icon: "👤" },
-    { key: "privacy", href: "/dashboard/settings/privacy", icon: "🔒" },
-    { key: "billing", href: "/dashboard/settings/billing", icon: "💳" },
-    { key: "usage", href: "/dashboard/settings/usage", icon: "📊" },
+    { key: "general", href: "/dashboard/settings", icon: Settings },
+    { key: "account", href: "/dashboard/settings/account", icon: User },
+    { key: "privacy", href: "/dashboard/settings/privacy", icon: Shield },
+    { key: "billing", href: "/dashboard/settings/billing", icon: CreditCard },
+    { key: "usage", href: "/dashboard/settings/usage", icon: ChartBar },
   ];
 
   return (
@@ -35,6 +36,7 @@ export default function SettingsLayout({
           <nav className="space-y-1 rounded-lg border border-border bg-card p-2">
             {settingsNav.map((item) => {
               const isActive = pathname === item.href;
+              const Icon = item.icon;
 
               return (
                 <Link
@@ -46,7 +48,7 @@ export default function SettingsLayout({
                       : "text-muted-foreground hover:bg-hover hover:text-foreground"
                   }`}
                 >
-                  <span className="text-lg">{item.icon}</span>
+                  <Icon className="h-4 w-4" />
                   {t(`nav.${item.key}`)}
                 </Link>
               );

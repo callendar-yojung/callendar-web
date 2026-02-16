@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth-helper";
-import { checkTeamMembership } from "@/lib/team";
+import { requireOwnerAccess } from "@/lib/access";
 import {
   deleteMemo,
   getMemoById,
@@ -17,11 +16,6 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = await getAuthUser(request);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const { id } = await params;
   const memoId = Number(id);
   const ownerType = parseOwnerType(request.nextUrl.searchParams.get("owner_type"));
@@ -31,15 +25,9 @@ export async function GET(
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 
-  if (ownerType === "personal" && ownerId !== user.memberId) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-  if (ownerType === "team") {
-    const isMember = await checkTeamMembership(ownerId, user.memberId);
-    if (!isMember) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-  }
+  const access = await requireOwnerAccess(request, ownerType, ownerId);
+  if (access instanceof NextResponse) return access;
+  const { user } = access;
 
   const memo = await getMemoById(memoId, ownerType, ownerId, user.memberId);
   return NextResponse.json({ memo });
@@ -49,11 +37,6 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = await getAuthUser(request);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const { id } = await params;
   const memoId = Number(id);
   const body = await request.json();
@@ -68,15 +51,9 @@ export async function PUT(
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 
-  if (ownerType === "personal" && ownerId !== user.memberId) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-  if (ownerType === "team") {
-    const isMember = await checkTeamMembership(ownerId, user.memberId);
-    if (!isMember) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-  }
+  const access = await requireOwnerAccess(request, ownerType, ownerId);
+  if (access instanceof NextResponse) return access;
+  const { user } = access;
 
   const success = await updateMemo(memoId, ownerType, ownerId, user.memberId, {
     title: title ?? undefined,
@@ -91,11 +68,6 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = await getAuthUser(request);
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const { id } = await params;
   const memoId = Number(id);
   const ownerType = parseOwnerType(request.nextUrl.searchParams.get("owner_type"));
@@ -105,15 +77,9 @@ export async function DELETE(
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 
-  if (ownerType === "personal" && ownerId !== user.memberId) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-  if (ownerType === "team") {
-    const isMember = await checkTeamMembership(ownerId, user.memberId);
-    if (!isMember) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-  }
+  const access = await requireOwnerAccess(request, ownerType, ownerId);
+  if (access instanceof NextResponse) return access;
+  const { user } = access;
 
   const success = await deleteMemo(memoId, ownerType, ownerId, user.memberId);
   return NextResponse.json({ success });

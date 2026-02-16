@@ -63,6 +63,23 @@ export async function getTaskById(taskId: number): Promise<Task | null> {
   return rows.length > 0 ? (rows[0] as Task) : null;
 }
 
+export async function getTaskByIdWithNames(taskId: number): Promise<Task | null> {
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT
+      t.*,
+      creator.nickname as created_by_name,
+      updater.nickname as updated_by_name
+     FROM tasks t
+     LEFT JOIN members creator ON t.created_by = creator.member_id
+     LEFT JOIN members updater ON t.updated_by = updater.member_id
+     WHERE t.id = ?
+     LIMIT 1`,
+    [taskId]
+  );
+
+  return rows.length > 0 ? (rows[0] as Task) : null;
+}
+
 export interface CreateTaskData {
   title: string;
   start_time: string;

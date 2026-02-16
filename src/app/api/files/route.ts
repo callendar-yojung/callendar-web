@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth-helper";
+import { requireAuth, requireOwnerAccess, requireTeamMembership } from "@/lib/access";
 import {
   getFilesByTeamId,
   getFileById,
@@ -15,10 +15,8 @@ import { checkStorageLimit } from "@/lib/storage";
 // GET /api/files?team_id=1&total_size=true - 팀의 총 파일 크기 조회
 export async function GET(request: NextRequest) {
   try {
-    const user = await getAuthUser(request);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireAuth(request);
+    if (auth instanceof NextResponse) return auth;
 
     const { searchParams } = new URL(request.url);
     const teamIdParam = searchParams.get("team_id");
@@ -26,6 +24,8 @@ export async function GET(request: NextRequest) {
     const totalSize = searchParams.get("total_size");
 
     if (totalSize && teamIdParam) {
+      const access = await requireTeamMembership(request, Number(teamIdParam));
+      if (access instanceof NextResponse) return access;
       // 팀의 총 파일 크기 조회
       const totalFileSize = await getTotalFileSizeByTeamId(Number(teamIdParam));
       return NextResponse.json({ totalFileSize });
@@ -34,12 +34,20 @@ export async function GET(request: NextRequest) {
     if (fileIdParam) {
       // 특정 파일 조회
       const file = await getFileById(Number(fileIdParam));
+      if (!file) {
+        return NextResponse.json({ error: "File not found" }, { status: 404 });
+      }
+      const access = await requireOwnerAccess(request, file.owner_type, file.owner_id);
+      if (access instanceof NextResponse) return access;
       return NextResponse.json(file);
     }
 
     if (!teamIdParam) {
       return NextResponse.json({ error: "team_id is required" }, { status: 400 });
     }
+
+    const access = await requireTeamMembership(request, Number(teamIdParam));
+    if (access instanceof NextResponse) return access;
 
     // 팀의 모든 파일 조회
     const files = await getFilesByTeamId(Number(teamIdParam));
@@ -56,10 +64,8 @@ export async function GET(request: NextRequest) {
 // POST /api/files - 새 파일 생성
 export async function POST(request: NextRequest) {
   try {
-    const user = await getAuthUser(request);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireAuth(request);
+    if (auth instanceof NextResponse) return auth;
 
     const body = await request.json();
     const { team_id, file_name, file_size_mb } = body;
@@ -100,10 +106,8 @@ export async function POST(request: NextRequest) {
 // PUT /api/files - 파일 정보 수정
 export async function PUT(request: NextRequest) {
   try {
-    const user = await getAuthUser(request);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireAuth(request);
+    if (auth instanceof NextResponse) return auth;
 
     const body = await request.json();
     const { id, file_name } = body;
@@ -116,6 +120,13 @@ export async function PUT(request: NextRequest) {
     }
 
     // 파일 정보 수정
+    const file = await getFileById(Number(id));
+    if (!file) {
+      return NextResponse.json({ error: "File not found" }, { status: 404 });
+    }
+    const access = await requireOwnerAccess(request, file.owner_type, file.owner_id);
+    if (access instanceof NextResponse) return access;
+
     const success = await updateFile(Number(id), file_name);
     if (!success) {
       return NextResponse.json({ error: "File not found" }, { status: 404 });
@@ -134,10 +145,8 @@ export async function PUT(request: NextRequest) {
 // DELETE /api/files?id=1 - 파일 삭제
 export async function DELETE(request: NextRequest) {
   try {
-    const user = await getAuthUser(request);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireAuth(request);
+    if (auth instanceof NextResponse) return auth;
 
     const { searchParams } = new URL(request.url);
     const fileIdParam = searchParams.get("id");
@@ -145,6 +154,13 @@ export async function DELETE(request: NextRequest) {
     if (!fileIdParam) {
       return NextResponse.json({ error: "id is required" }, { status: 400 });
     }
+
+    const file = await getFileById(Number(fileIdParam));
+    if (!file) {
+      return NextResponse.json({ error: "File not found" }, { status: 404 });
+    }
+    const access = await requireOwnerAccess(request, file.owner_type, file.owner_id);
+    if (access instanceof NextResponse) return access;
 
     // 파일 삭제
     const success = await deleteFile(Number(fileIdParam));

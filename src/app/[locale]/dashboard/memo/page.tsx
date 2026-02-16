@@ -30,6 +30,8 @@ export default function MemoPage() {
   const [isListLoading, setIsListLoading] = useState(true);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [listError, setListError] = useState<string | null>(null);
+  const [detailError, setDetailError] = useState<string | null>(null);
   const saveTimerRef = useRef<number | null>(null);
 
   const ownerType: MemoOwnerType | null = currentWorkspace?.type ?? null;
@@ -40,78 +42,82 @@ export default function MemoPage() {
     [total]
   );
 
+  const loadList = async (showLoading = true) => {
+    if (!ownerType || !ownerId) return;
+    try {
+      if (showLoading) setIsListLoading(true);
+      setListError(null);
+      const params = new URLSearchParams({
+        owner_type: ownerType,
+        owner_id: String(ownerId),
+        page: String(page),
+        page_size: String(pageSize),
+        sort,
+      });
+      if (query.trim()) params.set("query", query.trim());
+      if (favoriteOnly) params.set("favorite", "1");
+
+      const res = await fetch(`/api/memos?${params.toString()}`);
+      const data = await res.json();
+      const list = data?.memos ?? [];
+      setMemos(list);
+      setTotal(Number(data?.total || 0));
+
+      if (!selectedMemoId && list.length > 0) {
+        setSelectedMemoId(list[0].memo_id);
+      }
+
+      if (list.length === 0) {
+        setSelectedMemoId(null);
+        setContent(null);
+        setTitle("");
+      }
+    } catch {
+      setMemos([]);
+      setTotal(0);
+      setListError(t("loadError"));
+    } finally {
+      if (showLoading) setIsListLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!ownerType || !ownerId) return;
-
-    const fetchMemos = async () => {
-      try {
-        setIsListLoading(true);
-        const params = new URLSearchParams({
-          owner_type: ownerType,
-          owner_id: String(ownerId),
-          page: String(page),
-          page_size: String(pageSize),
-          sort,
-        });
-        if (query.trim()) params.set("query", query.trim());
-        if (favoriteOnly) params.set("favorite", "1");
-
-        const res = await fetch(`/api/memos?${params.toString()}`);
-        const data = await res.json();
-        const list = data?.memos ?? [];
-        setMemos(list);
-        setTotal(Number(data?.total || 0));
-
-        if (!selectedMemoId && list.length > 0) {
-          setSelectedMemoId(list[0].memo_id);
-        }
-
-        if (list.length === 0) {
-          setSelectedMemoId(null);
-          setContent(null);
-          setTitle("");
-        }
-      } catch {
-        setMemos([]);
-        setTotal(0);
-      } finally {
-        setIsListLoading(false);
-      }
-    };
-
-    fetchMemos();
+    loadList();
   }, [ownerType, ownerId, page, sort, favoriteOnly, query]);
 
   useEffect(() => {
     setPage(1);
   }, [query, favoriteOnly, sort]);
 
-  useEffect(() => {
+  const loadDetail = async () => {
     if (!ownerType || !ownerId || !selectedMemoId) return;
-
-    const fetchMemoDetail = async () => {
-      try {
-        setIsDetailLoading(true);
-        const res = await fetch(
-          `/api/memos/${selectedMemoId}?owner_type=${ownerType}&owner_id=${ownerId}`
-        );
-        const data = await res.json();
-        if (data?.memo?.content_json) {
-          setContent(JSON.parse(data.memo.content_json));
-          setTitle(data.memo.title || "");
-        } else {
-          setContent({ type: "doc", content: [{ type: "paragraph" }] });
-          setTitle(t("untitled"));
-        }
-      } catch {
+    try {
+      setIsDetailLoading(true);
+      setDetailError(null);
+      const res = await fetch(
+        `/api/memos/${selectedMemoId}?owner_type=${ownerType}&owner_id=${ownerId}`
+      );
+      const data = await res.json();
+      if (data?.memo?.content_json) {
+        setContent(JSON.parse(data.memo.content_json));
+        setTitle(data.memo.title || "");
+      } else {
         setContent({ type: "doc", content: [{ type: "paragraph" }] });
         setTitle(t("untitled"));
-      } finally {
-        setIsDetailLoading(false);
       }
-    };
+    } catch {
+      setContent({ type: "doc", content: [{ type: "paragraph" }] });
+      setTitle(t("untitled"));
+      setDetailError(t("loadError"));
+    } finally {
+      setIsDetailLoading(false);
+    }
+  };
 
-    fetchMemoDetail();
+  useEffect(() => {
+    if (!ownerType || !ownerId || !selectedMemoId) return;
+    loadDetail();
   }, [ownerType, ownerId, selectedMemoId, t]);
 
   useEffect(() => {
@@ -151,20 +157,7 @@ export default function MemoPage() {
   };
 
   const refreshList = async () => {
-    if (!ownerType || !ownerId) return;
-    const params = new URLSearchParams({
-      owner_type: ownerType,
-      owner_id: String(ownerId),
-      page: String(page),
-      page_size: String(pageSize),
-      sort,
-    });
-    if (query.trim()) params.set("query", query.trim());
-    if (favoriteOnly) params.set("favorite", "1");
-    const res = await fetch(`/api/memos?${params.toString()}`);
-    const data = await res.json();
-    setMemos(data?.memos ?? []);
-    setTotal(Number(data?.total || 0));
+    await loadList(false);
   };
 
   const handleCreateMemo = async () => {
@@ -268,7 +261,7 @@ export default function MemoPage() {
         </div>
 
         <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
-          <div className="rounded-xl border border-border bg-card p-4">
+          <div className="ui-card p-4">
             <div className="flex items-center gap-2">
               <input
                 value={query}
@@ -279,7 +272,7 @@ export default function MemoPage() {
               <button
                 type="button"
                 onClick={handleCreateMemo}
-                className="rounded border border-border bg-background px-2 py-1 text-sm"
+                className="ui-button px-2 py-1 text-sm"
               >
                 {t("newMemo")}
               </button>
@@ -309,6 +302,17 @@ export default function MemoPage() {
             <div className="mt-4 space-y-2">
               {isListLoading ? (
                 <p className="text-sm text-muted-foreground">{t("loading")}</p>
+              ) : listError ? (
+                <div className="rounded border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
+                  {listError}
+                  <button
+                    type="button"
+                    onClick={() => loadList()}
+                    className="ml-2 text-xs text-foreground underline"
+                  >
+                    {t("retry")}
+                  </button>
+                </div>
               ) : memos.length === 0 ? (
                 <p className="text-sm text-muted-foreground">{t("noMemos")}</p>
               ) : (
@@ -367,7 +371,7 @@ export default function MemoPage() {
                 type="button"
                 disabled={page <= 1}
                 onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-                className="rounded border border-border px-2 py-1 disabled:opacity-40"
+                className="ui-button px-2 py-1 text-xs disabled:opacity-40"
               >
                 {t("prev")}
               </button>
@@ -378,7 +382,7 @@ export default function MemoPage() {
                 type="button"
                 disabled={page >= totalPages}
                 onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-                className="rounded border border-border px-2 py-1 disabled:opacity-40"
+                className="ui-button px-2 py-1 text-xs disabled:opacity-40"
               >
                 {t("next")}
               </button>
@@ -387,15 +391,26 @@ export default function MemoPage() {
 
           <div>
             {isDetailLoading ? (
-              <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
+              <div className="ui-card p-6 text-sm text-muted-foreground">
                 {t("loading")}
               </div>
+            ) : detailError ? (
+              <div className="ui-card p-6 text-sm text-muted-foreground">
+                {detailError}
+                <button
+                  type="button"
+                  onClick={() => loadDetail()}
+                  className="ml-2 text-xs text-foreground underline"
+                >
+                  {t("retry")}
+                </button>
+              </div>
             ) : !selectedMemoId ? (
-              <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
+              <div className="ui-card p-6 text-sm text-muted-foreground">
                 {t("noMemos")}
               </div>
             ) : !content ? (
-              <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
+              <div className="ui-card p-6 text-sm text-muted-foreground">
                 {t("loading")}
               </div>
             ) : (
@@ -411,7 +426,7 @@ export default function MemoPage() {
                   <button
                     type="button"
                     onClick={handleTitleSave}
-                    className="rounded border border-border px-3 py-2 text-sm"
+                    className="ui-button px-3 py-2 text-sm"
                   >
                     {t("saveTitle")}
                   </button>

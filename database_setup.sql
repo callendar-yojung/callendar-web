@@ -251,6 +251,36 @@ CREATE TABLE IF NOT EXISTS task_attachments (
 CREATE INDEX idx_task_attachments_task ON task_attachments(task_id);
 CREATE INDEX idx_task_attachments_file ON task_attachments(file_id);
 
+-- 14-1. 태스크 내보내기 테이블
+CREATE TABLE IF NOT EXISTS task_exports (
+  export_id   BIGINT AUTO_INCREMENT PRIMARY KEY,
+  task_id     BIGINT NOT NULL,
+  token       VARCHAR(64) NOT NULL UNIQUE,
+  visibility  ENUM('public', 'restricted') NOT NULL DEFAULT 'restricted',
+  created_by  BIGINT NOT NULL,
+  created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+  revoked_at  DATETIME NULL,
+  expires_at  DATETIME NULL,
+  FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+  FOREIGN KEY (created_by) REFERENCES members(member_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX idx_task_exports_task ON task_exports(task_id);
+CREATE INDEX idx_task_exports_created_by ON task_exports(created_by);
+CREATE INDEX idx_task_exports_expires ON task_exports(expires_at);
+
+-- 14-2. 태스크 내보내기 접근 허용 테이블
+CREATE TABLE IF NOT EXISTS task_export_access (
+  export_id BIGINT NOT NULL,
+  member_id BIGINT NOT NULL,
+  added_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (export_id, member_id),
+  FOREIGN KEY (export_id) REFERENCES task_exports(export_id) ON DELETE CASCADE,
+  FOREIGN KEY (member_id) REFERENCES members(member_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX idx_task_export_access_member ON task_export_access(member_id);
+
 -- 15. 메모 테이블 (개인/팀 개인 메모)
 CREATE TABLE IF NOT EXISTS memos (
   memo_id BIGINT AUTO_INCREMENT PRIMARY KEY,

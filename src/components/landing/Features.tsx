@@ -1,14 +1,22 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import {
+	FileText,
+	KanbanSquare,
+	Link2,
+	Sparkles,
+	ShieldCheck,
+	Plug,
+} from "lucide-react";
 
 const featureKeys = [
-	{ key: "docs", icon: "📝" },
-	{ key: "project", icon: "📋" },
-	{ key: "workspace", icon: "🔗" },
-	{ key: "ai", icon: "🤖" },
-	{ key: "security", icon: "🔒" },
-	{ key: "integrations", icon: "🔌" },
+	{ key: "docs", icon: FileText },
+	{ key: "project", icon: KanbanSquare },
+	{ key: "workspace", icon: Link2 },
+	{ key: "ai", icon: Sparkles },
+	{ key: "security", icon: ShieldCheck },
+	{ key: "integrations", icon: Plug },
 ] as const;
 
 export default function Features() {
@@ -27,12 +35,14 @@ export default function Features() {
 				</div>
 
 				<div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-					{featureKeys.map(({ key, icon }) => (
+					{featureKeys.map(({ key, icon: Icon }) => (
 						<article
 							key={key}
 							className="group rounded-2xl border border-border bg-background p-8 transition-all hover:border-border hover:shadow-lg"
 						>
-							<div className="mb-4 text-4xl">{icon}</div>
+							<div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-muted">
+								<Icon className="h-6 w-6 text-foreground" />
+							</div>
 							<h3 className="mb-2 text-xl font-semibold text-foreground">
 								{t(`items.${key}.title`)}
 							</h3>

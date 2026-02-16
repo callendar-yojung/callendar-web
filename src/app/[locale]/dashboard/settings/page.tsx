@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { useRouter, usePathname } from "@/i18n/routing";
 import { useTheme } from "@/contexts/ThemeContext";
+import Button from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function SettingsPage() {
   const t = useTranslations("dashboard.settings");
@@ -110,17 +112,14 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-lg border border-border bg-card p-6">
-        <h2 className="text-lg font-semibold text-card-foreground">
-          {t("general.title")}
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t("general.description")}
-        </p>
-
-        <div className="mt-6 space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("general.title")}</CardTitle>
+          <CardDescription>{t("general.description")}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
           {/* 언어 설정 */}
-          <div className="flex items-center justify-between border-b border-border pb-4">
+          <div className="flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <label className="text-sm font-medium text-card-foreground">
                 {t("general.language")}
@@ -141,7 +140,7 @@ export default function SettingsPage() {
 
           {/* 타임존 */}
           <div className="border-b border-border pb-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <label className="text-sm font-medium text-card-foreground">
                   {t("general.timezone")}
@@ -153,16 +152,12 @@ export default function SettingsPage() {
                   {t("general.timezoneDetected")}: {detectedTimezone}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={handleUseCurrentTimezone}
-                className="rounded-lg border border-border px-3 py-2 text-xs text-muted-foreground hover:text-foreground"
-              >
+              <Button size="sm" onClick={handleUseCurrentTimezone}>
                 {t("general.useCurrentTimezone")}
-              </button>
+              </Button>
             </div>
 
-            <div className="mt-3 flex items-center justify-between">
+            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-medium text-card-foreground">
                   {t("general.timezoneAuto")}
@@ -171,13 +166,13 @@ export default function SettingsPage() {
                   {t("general.timezoneAutoDesc")}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={handleAutoTimezoneToggle}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
-                  autoTimezone ? "bg-blue-600" : "bg-muted"
-                }`}
-              >
+                <button
+                  type="button"
+                  onClick={handleAutoTimezoneToggle}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
+                    autoTimezone ? "bg-blue-600" : "bg-muted"
+                  }`}
+                >
                 <span
                   className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
                     autoTimezone ? "translate-x-6" : "translate-x-1"
@@ -186,7 +181,7 @@ export default function SettingsPage() {
               </button>
             </div>
 
-            <div className="mt-3 flex items-center justify-between">
+            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-muted-foreground">
                 {t("general.timezoneManual")}
               </p>
@@ -220,7 +215,7 @@ export default function SettingsPage() {
           </div>
 
           {/* 테마 */}
-          <div className="flex items-center justify-between border-b border-border pb-4">
+          <div className="flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <label className="text-sm font-medium text-card-foreground">
                 {t("general.theme")}
@@ -241,7 +236,7 @@ export default function SettingsPage() {
           </div>
 
           {/* 알림 */}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <label className="text-sm font-medium text-card-foreground">
                 {t("general.notifications")}
@@ -264,18 +259,14 @@ export default function SettingsPage() {
               />
             </button>
           </div>
-        </div>
+        </CardContent>
 
-        <div className="mt-6 flex justify-end">
-          <button
-            type="button"
-            onClick={handleSave}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
-          >
+        <div className="px-6 pb-6 flex justify-end">
+          <Button variant="primary" onClick={handleSave} size="lg">
             {t("general.save")}
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

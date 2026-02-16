@@ -1,15 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth-helper";
+import { requireOwnerAccess } from "@/lib/access";
 import { createTag, getTagsByOwner } from "@/lib/tag";
 
 // GET /api/tags?owner_type=team&owner_id=1
 export async function GET(request: NextRequest) {
   try {
-    const user = await getAuthUser(request);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const searchParams = request.nextUrl.searchParams;
     const ownerType = searchParams.get("owner_type") as "team" | "personal";
     const ownerId = searchParams.get("owner_id");
@@ -28,7 +23,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // TODO: 권한 확인 로직 추가 (팀 멤버인지, 본인의 개인 태그인지)
+    const access = await requireOwnerAccess(request, ownerType, Number(ownerId));
+    if (access instanceof NextResponse) return access;
 
     const tags = await getTagsByOwner(ownerType, Number(ownerId));
 
@@ -45,11 +41,6 @@ export async function GET(request: NextRequest) {
 // POST /api/tags
 export async function POST(request: NextRequest) {
   try {
-    const user = await getAuthUser(request);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const body = await request.json();
     const { name, color, owner_type, owner_id } = body;
 
@@ -67,7 +58,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TODO: 권한 확인 로직 추가
+    const access = await requireOwnerAccess(request, owner_type, Number(owner_id));
+    if (access instanceof NextResponse) return access;
+    const { user } = access;
 
     const tagId = await createTag({
       name,
@@ -95,4 +88,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

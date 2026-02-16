@@ -5,6 +5,8 @@ import { useTranslations, useLocale } from "next-intl";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon } from "lucide-react"; // 아이콘 라이브러리 추가 권장
 import { useRouter } from "next/navigation";
+import Button from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 interface Tag {
   tag_id: number;
@@ -151,22 +153,22 @@ export default function CalendarPanel() {
 
   if (isLoading) {
     return (
-        <div className="flex h-[600px] items-center justify-center rounded-3xl border border-border bg-card/50 backdrop-blur-md">
+        <Card className="flex h-[600px] items-center justify-center rounded-3xl bg-card/50 backdrop-blur-md">
           <div className="flex flex-col items-center gap-4">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
             <p className="text-sm font-medium text-muted-foreground">Loading your schedule...</p>
           </div>
-        </div>
+        </Card>
     );
   }
 
   return (
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-4 animate-in fade-in duration-700">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-4 animate-in fade-in duration-700">
         {/* 캘린더 메인 섹션 */}
         <div className="lg:col-span-3 space-y-6">
-          <div className="overflow-hidden rounded-[2.5rem] border border-border/60 bg-card shadow-2xl shadow-foreground/5">
+          <Card className="overflow-hidden rounded-[2.5rem] border-border/60 shadow-2xl shadow-foreground/5">
             {/* 헤더: 글래스모피즘 스타일 */}
-            <div className="flex items-center justify-between border-b border-border/40 bg-muted/10 px-8 py-7 backdrop-blur-xl">
+            <div className="flex flex-col gap-4 border-b border-border/40 bg-muted/10 px-6 py-5 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-7">
               <div className="space-y-1">
                 <h2 className="text-3xl font-bold tracking-tight text-foreground">
                   {currentDate.toLocaleDateString(locale, { month: "long" })}
@@ -177,16 +179,22 @@ export default function CalendarPanel() {
                 </p>
               </div>
 
-              <div className="flex items-center gap-3 bg-background/50 p-1.5 rounded-2xl border border-border/40 shadow-inner">
-                <button onClick={handlePrevMonth} className="p-2 rounded-xl hover:bg-muted transition-colors"><ChevronLeft size={20} /></button>
-                <button onClick={() => setCurrentDate(new Date())} className="px-4 py-1.5 text-xs font-bold uppercase tracking-wider hover:text-primary transition-colors">{t("calendar.today")}</button>
-                <button onClick={handleNextMonth} className="p-2 rounded-xl hover:bg-muted transition-colors"><ChevronRight size={20} /></button>
+              <div className="flex items-center gap-2 rounded-2xl border border-border/40 bg-background/50 p-1.5 shadow-inner">
+                <Button size="sm" onClick={handlePrevMonth} className="rounded-xl px-2 py-2">
+                  <ChevronLeft size={20} />
+                </Button>
+                <Button size="sm" variant="muted" onClick={() => setCurrentDate(new Date())} className="px-4 py-1.5 text-xs font-bold uppercase tracking-wider">
+                  {t("calendar.today")}
+                </Button>
+                <Button size="sm" onClick={handleNextMonth} className="rounded-xl px-2 py-2">
+                  <ChevronRight size={20} />
+                </Button>
               </div>
             </div>
 
             {/* 캘린더 바디 */}
-            <div className="p-6">
-              <div className="mb-4 grid grid-cols-7 gap-4 text-center">
+            <div className="p-5 sm:p-6">
+              <div className="mb-4 grid grid-cols-7 gap-2 text-center sm:gap-4">
                 {weekDays.map((day, i) => (
                     <div key={day} className={`text-xs font-black uppercase tracking-widest ${i === 0 ? "text-red-400" : i === 6 ? "text-blue-400" : "text-muted-foreground/50"}`}>
                       {day}
@@ -194,7 +202,7 @@ export default function CalendarPanel() {
                 ))}
               </div>
 
-              <div className="grid grid-cols-7 gap-4">
+              <div className="grid grid-cols-7 gap-2 sm:gap-4">
                 {days.map((day, index) => {
                   const dayTasks = day ? tasksByDay.get(day) || [] : [];
                   const isSelected = selectedDate?.getDate() === day && selectedDate?.getMonth() === month;
@@ -241,13 +249,13 @@ export default function CalendarPanel() {
                 })}
               </div>
             </div>
-          </div>
+          </Card>
         </div>
 
         {/* 우측 사이드바: 벤토 카드 스타일 */}
         <div className="lg:col-span-1 space-y-6">
-          <div className="rounded-[2.5rem] border border-border/60 bg-card p-8 shadow-xl">
-            <div className="mb-8 flex items-center justify-between">
+          <Card className="rounded-[2.5rem] border-border/60 p-6 shadow-xl sm:p-8">
+            <div className="mb-6 flex items-center justify-between sm:mb-8">
               <div className="flex items-center gap-3">
                 <div className="rounded-2xl bg-primary/10 p-2.5 text-primary">
                   <CalendarIcon size={20} />
@@ -256,12 +264,14 @@ export default function CalendarPanel() {
                   {selectedDate?.getDate()} <span className="text-sm font-medium text-muted-foreground">{currentDate.toLocaleDateString(locale, { month: 'short' })}</span>
                 </h3>
               </div>
-              <button
+              <Button
+                  variant="primary"
+                  size="sm"
                   onClick={() => router.push("/dashboard/tasks/new")}
-                  className="flex h-10 w-10 items-center justify-center rounded-2xl bg-foreground text-background transition-transform hover:scale-110 active:scale-95 shadow-lg"
+                  className="h-10 w-10 rounded-2xl p-0 shadow-lg"
               >
                 <Plus size={20} />
-              </button>
+              </Button>
             </div>
 
             <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
@@ -299,7 +309,7 @@ export default function CalendarPanel() {
                   ))
               )}
             </div>
-          </div>
+          </Card>
         </div>
 
       </div>

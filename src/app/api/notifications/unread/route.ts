@@ -1,17 +1,17 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
 import { getUnreadCount } from "@/lib/notification";
+import { jsonServerError, jsonSuccess, jsonUnauthorized } from "@/lib/api-response";
 
 // GET /api/notifications/unread
 export async function GET(request: NextRequest) {
   try {
     const user = await getAuthUser(request);
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!user) return jsonUnauthorized();
 
     const count = await getUnreadCount(user.memberId);
-    return NextResponse.json({ count });
+    return jsonSuccess({ count });
   } catch (error) {
-    console.error("Failed to fetch unread count:", error);
-    return NextResponse.json({ error: "Failed to fetch unread count" }, { status: 500 });
+    return jsonServerError(error, "Failed to fetch unread count");
   }
 }

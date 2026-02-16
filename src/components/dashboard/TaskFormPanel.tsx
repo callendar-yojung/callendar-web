@@ -196,6 +196,14 @@ export default function TaskFormPanel({
     }
   };
 
+  const formatBytes = (bytes: number) => {
+    if (!Number.isFinite(bytes) || bytes <= 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${Number.parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !workspaceType || !ownerId) return;
@@ -220,7 +228,25 @@ export default function TaskFormPanel({
 
       const data = await response.json();
       if (!response.ok) {
-        setUploadError(data.error || "파일 업로드에 실패했습니다.");
+        if (data?.code === "LIMIT_EXCEEDED") {
+          const used = typeof data.used_bytes === "number" ? formatBytes(data.used_bytes) : null;
+          const limit = typeof data.limit_bytes === "number" ? formatBytes(data.limit_bytes) : null;
+          const maxFile =
+            typeof data.max_file_size_bytes === "number"
+              ? formatBytes(data.max_file_size_bytes)
+              : null;
+          const details = [
+            used && limit ? `사용 ${used} / ${limit}` : null,
+            maxFile ? `최대 파일 ${maxFile}` : null,
+          ]
+            .filter(Boolean)
+            .join(" · ");
+          setUploadError(
+            details ? `용량 제한을 초과했습니다. ${details}` : "용량 제한을 초과했습니다."
+          );
+        } else {
+          setUploadError(data.error || "파일 업로드에 실패했습니다.");
+        }
         return;
       }
 
@@ -248,6 +274,7 @@ export default function TaskFormPanel({
       setUploadingFile(false);
     }
   };
+
 
   const handleRemovePendingFile = async (fileId: number) => {
     try {

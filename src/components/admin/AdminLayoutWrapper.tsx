@@ -2,6 +2,15 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import {
+  LayoutDashboard,
+  Users,
+  Building2,
+  CreditCard,
+  Package,
+  UserCog,
+  Wrench,
+} from "lucide-react";
 
 interface Admin {
   admin_id: number;
@@ -62,32 +71,32 @@ export default function AdminLayoutWrapper({
     {
       name: "대시보드",
       path: "/admin/dashboard",
-      icon: "📊",
+      icon: LayoutDashboard,
     },
     {
       name: "회원 관리",
       path: "/admin/members",
-      icon: "👥",
+      icon: Users,
     },
     {
       name: "팀 관리",
       path: "/admin/teams",
-      icon: "🏢",
+      icon: Building2,
     },
     {
       name: "구독 관리",
       path: "/admin/subscriptions",
-      icon: "💳",
+      icon: CreditCard,
     },
     {
       name: "플랜 관리",
       path: "/admin/plans",
-      icon: "📦",
+      icon: Package,
     },
     {
       name: "관리자 관리",
       path: "/admin/admins",
-      icon: "🔐",
+      icon: UserCog,
     },
   ];
 
@@ -98,7 +107,10 @@ export default function AdminLayoutWrapper({
         {/* 로고 */}
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-            🛠️ 관리자 페이지
+            <span className="inline-flex items-center gap-2">
+              <Wrench className="h-5 w-5" />
+              관리자 페이지
+            </span>
           </h1>
         </div>
 
@@ -106,6 +118,7 @@ export default function AdminLayoutWrapper({
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {menuItems.map((item) => {
             const isActive = pathname === item.path;
+            const Icon = item.icon;
             return (
               <button
                 key={item.path}
@@ -117,7 +130,7 @@ export default function AdminLayoutWrapper({
                     : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                 }`}
               >
-                <span className="text-xl">{item.icon}</span>
+                <Icon className="h-4 w-4" />
                 <span>{item.name}</span>
               </button>
             );

@@ -21,7 +21,7 @@ export default function CTA() {
 
           <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link
-              href="/login"
+              href="/dashboard"
               className="w-full rounded-xl bg-background px-8 py-4 text-base font-medium text-foreground transition-all hover:bg-muted sm:w-auto"
             >
               {t("getStarted")}

@@ -24,6 +24,7 @@ export default function NotificationsBell() {
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<NotificationItem[]>([]);
+  const [listError, setListError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -44,11 +45,20 @@ export default function NotificationsBell() {
 
   const fetchList = async () => {
     setLoading(true);
+    setListError(null);
     try {
       const res = await fetch("/api/notifications?limit=20");
       const data = await res.json();
-      if (res.ok) setItems(data.notifications || []);
-      else setItems([]);
+      if (res.ok) {
+        setItems(data.notifications || []);
+      } else {
+        setItems([]);
+        setListError(t("loadError"));
+      }
+    } catch (error) {
+      console.error("Failed to fetch notifications:", error);
+      setItems([]);
+      setListError(t("loadError"));
     } finally {
       setLoading(false);
     }
@@ -61,7 +71,10 @@ export default function NotificationsBell() {
   }, []);
 
   useEffect(() => {
-    if (open) fetchList();
+    if (open) {
+      fetchList();
+      fetchCount();
+    }
   }, [open]);
 
   const handleMarkRead = async (id: number) => {
@@ -94,7 +107,10 @@ export default function NotificationsBell() {
     fetchCount();
   };
 
-  const empty = useMemo(() => !loading && items.length === 0, [loading, items.length]);
+  const empty = useMemo(
+    () => !loading && !listError && items.length === 0,
+    [loading, listError, items.length]
+  );
 
   return (
     <div ref={containerRef} className="relative">
@@ -136,6 +152,18 @@ export default function NotificationsBell() {
           <div className="max-h-80 overflow-y-auto">
             {loading && (
               <div className="p-4 text-sm text-muted-foreground">{t("loading")}</div>
+            )}
+            {listError && !loading && (
+              <div className="p-4 text-sm text-muted-foreground">
+                {listError}
+                <button
+                  type="button"
+                  onClick={fetchList}
+                  className="ml-2 text-xs text-foreground underline"
+                >
+                  {t("retry")}
+                </button>
+              </div>
             )}
             {empty && (
               <div className="p-4 text-sm text-muted-foreground">{t("empty")}</div>

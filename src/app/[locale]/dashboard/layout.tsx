@@ -70,7 +70,7 @@ export default function DashboardLayout({
             <button
               type="button"
               onClick={() => setMobileOpen(true)}
-              className="rounded border border-border bg-background px-2 py-1 text-sm"
+              className="ui-button px-2 py-1 text-sm"
             >
               Menu
             </button>

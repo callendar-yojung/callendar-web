@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth-helper";
+import { requireAuth, requireTaskAccess, requireWorkspaceAccess } from "@/lib/access";
 import {
   createTask,
   getTasksByWorkspaceIdPaginated,
   updateTask,
-  deleteTask,
-  getTaskById
+  deleteTask
 } from "@/lib/task";
-import { checkWorkspaceAccess } from "@/lib/workspace";
 import { attachFileToTask } from "@/lib/task-attachment";
 import { getWorkspaceById } from "@/lib/workspace";
 import { getTeamById, getPermissionsByMember } from "@/lib/team";
@@ -15,10 +13,9 @@ import { getTeamById, getPermissionsByMember } from "@/lib/team";
 // GET /api/tasks?workspace_id={id}&page=1&limit=20&sort_by=start_time&sort_order=DESC&status=TODO&search=keyword
 export async function GET(request: NextRequest) {
   try {
-    const user = await getAuthUser(request);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireAuth(request);
+    if (auth instanceof NextResponse) return auth;
+    const { user } = auth;
 
     const searchParams = request.nextUrl.searchParams;
     const workspaceId = searchParams.get("workspace_id");
@@ -31,14 +28,8 @@ export async function GET(request: NextRequest) {
     }
 
     // 워크스페이스 접근 권한 확인
-    const hasAccess = await checkWorkspaceAccess(
-      Number(workspaceId),
-      user.memberId
-    );
-
-    if (!hasAccess) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const access = await requireWorkspaceAccess(request, Number(workspaceId));
+    if (access instanceof NextResponse) return access;
 
     const page = searchParams.get("page");
     const limit = searchParams.get("limit");
@@ -69,10 +60,9 @@ export async function GET(request: NextRequest) {
 // POST /api/tasks - 새 태스크 생성
 export async function POST(request: NextRequest) {
   try {
-    const user = await getAuthUser(request);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireAuth(request);
+    if (auth instanceof NextResponse) return auth;
+    const { user } = auth;
 
     const body = await request.json();
     const { title, start_time, end_time, content, status, workspace_id, color, tag_ids, file_ids } = body;
@@ -86,14 +76,8 @@ export async function POST(request: NextRequest) {
     }
 
     // 워크스페이스 접근 권한 확인
-    const hasAccess = await checkWorkspaceAccess(
-      Number(workspace_id),
-      user.memberId
-    );
-
-    if (!hasAccess) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const access = await requireWorkspaceAccess(request, Number(workspace_id));
+    if (access instanceof NextResponse) return access;
 
     const workspace = await getWorkspaceById(Number(workspace_id));
     if (!workspace) {
@@ -158,10 +142,9 @@ export async function POST(request: NextRequest) {
 // PATCH /api/tasks - 태스크 수정
 export async function PATCH(request: NextRequest) {
   try {
-    const user = await getAuthUser(request);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireAuth(request);
+    if (auth instanceof NextResponse) return auth;
+    const { user } = auth;
 
     const body = await request.json();
     const { task_id, title, start_time, end_time, content, status, color, tag_ids } = body;
@@ -173,15 +156,9 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const task = await getTaskById(Number(task_id));
-    if (!task) {
-      return NextResponse.json({ error: "Task not found" }, { status: 404 });
-    }
-
-    const hasAccess = await checkWorkspaceAccess(task.workspace_id, user.memberId);
-    if (!hasAccess) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const access = await requireTaskAccess(request, Number(task_id));
+    if (access instanceof NextResponse) return access;
+    const { task } = access;
 
     const workspace = await getWorkspaceById(task.workspace_id);
     if (!workspace) {
@@ -224,10 +201,9 @@ export async function PATCH(request: NextRequest) {
 // DELETE /api/tasks - 태스크 삭제
 export async function DELETE(request: NextRequest) {
   try {
-    const user = await getAuthUser(request);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireAuth(request);
+    if (auth instanceof NextResponse) return auth;
+    const { user } = auth;
 
     const searchParams = request.nextUrl.searchParams;
     const taskId = searchParams.get("task_id");
@@ -239,15 +215,9 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const task = await getTaskById(Number(taskId));
-    if (!task) {
-      return NextResponse.json({ error: "Task not found" }, { status: 404 });
-    }
-
-    const hasAccess = await checkWorkspaceAccess(task.workspace_id, user.memberId);
-    if (!hasAccess) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const access = await requireTaskAccess(request, Number(taskId));
+    if (access instanceof NextResponse) return access;
+    const { task } = access;
 
     const workspace = await getWorkspaceById(task.workspace_id);
     if (!workspace) {

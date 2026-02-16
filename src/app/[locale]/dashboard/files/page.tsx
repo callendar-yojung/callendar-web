@@ -1,6 +1,20 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import {
+  Archive,
+  File,
+  FileArchive,
+  FileImage,
+  FileSpreadsheet,
+  FileText,
+  FileVideoCamera,
+  Folder,
+  Image,
+  Music,
+  Presentation,
+  X,
+} from "lucide-react";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useEffect, useState, useCallback } from "react";
 
@@ -219,16 +233,16 @@ export default function FilesPage() {
   };
 
   const getFileIcon = (mimeType: string | null) => {
-    if (!mimeType) return "📄";
-    if (mimeType.startsWith("image/")) return "🖼️";
-    if (mimeType.includes("pdf")) return "📕";
-    if (mimeType.includes("document") || mimeType.includes("text")) return "📝";
-    if (mimeType.includes("spreadsheet")) return "📊";
-    if (mimeType.includes("presentation")) return "📽️";
-    if (mimeType.includes("zip") || mimeType.includes("archive")) return "📦";
-    if (mimeType.includes("video")) return "🎬";
-    if (mimeType.includes("audio")) return "🎵";
-    return "📄";
+    if (!mimeType) return File;
+    if (mimeType.startsWith("image/")) return FileImage;
+    if (mimeType.includes("pdf")) return FileText;
+    if (mimeType.includes("document") || mimeType.includes("text")) return FileText;
+    if (mimeType.includes("spreadsheet")) return FileSpreadsheet;
+    if (mimeType.includes("presentation")) return Presentation;
+    if (mimeType.includes("zip") || mimeType.includes("archive")) return FileArchive;
+    if (mimeType.includes("video")) return FileVideoCamera;
+    if (mimeType.includes("audio")) return Music;
+    return File;
   };
 
   const isImage = (mimeType: string | null) => {
@@ -290,7 +304,7 @@ export default function FilesPage() {
   return (
     <div className="flex h-full flex-col p-6">
       {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">{t("title")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{t("description")}</p>
@@ -298,11 +312,7 @@ export default function FilesPage() {
         <button
           type="button"
           onClick={toggleSelectMode}
-          className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-            isSelectMode
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted text-muted-foreground hover:bg-muted/80"
-          }`}
+          className={isSelectMode ? "ui-button-primary" : "ui-button-muted"}
         >
           {isSelectMode ? t("cancelSelect") : t("selectMode")}
         </button>
@@ -318,14 +328,14 @@ export default function FilesPage() {
           <button
             type="button"
             onClick={selectAll}
-            className="rounded-lg bg-card px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-card/80"
+            className="ui-button-muted px-3 py-1.5 text-sm"
           >
             {t("selectAll")}
           </button>
           <button
             type="button"
             onClick={deselectAll}
-            className="rounded-lg bg-card px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-card/80"
+            className="ui-button-muted px-3 py-1.5 text-sm"
           >
             {t("deselectAll")}
           </button>
@@ -334,14 +344,14 @@ export default function FilesPage() {
               <button
                 type="button"
                 onClick={handleBulkDownload}
-                className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+                className="ui-button-primary px-3 py-1.5 text-sm"
               >
                 {t("downloadSelected")} ({selectedFiles.size})
               </button>
               <button
                 type="button"
                 onClick={() => setDeleteConfirm("bulk")}
-                className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-red-700"
+                className="ui-button-danger px-3 py-1.5 text-sm"
               >
                 {t("deleteSelected")} ({selectedFiles.size})
               </button>
@@ -355,53 +365,40 @@ export default function FilesPage() {
         <button
           type="button"
           onClick={() => handleFilterChange("all")}
-          className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-            filter === "all"
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted text-muted-foreground hover:bg-muted/80"
-          }`}
+          className={filter === "all" ? "ui-button-primary" : "ui-button-muted"}
         >
           {t("all")} ({stats.total})
         </button>
         <button
           type="button"
           onClick={() => handleFilterChange("image")}
-          className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-            filter === "image"
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted text-muted-foreground hover:bg-muted/80"
-          }`}
+          className={`flex items-center gap-2 ${filter === "image" ? "ui-button-primary" : "ui-button-muted"}`}
         >
-          🖼️ {t("images")} ({stats.images})
+          <Image className="h-4 w-4" />
+          {t("images")} ({stats.images})
         </button>
         <button
           type="button"
           onClick={() => handleFilterChange("document")}
-          className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-            filter === "document"
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted text-muted-foreground hover:bg-muted/80"
-          }`}
+          className={`flex items-center gap-2 ${filter === "document" ? "ui-button-primary" : "ui-button-muted"}`}
         >
-          📄 {t("documents")} ({stats.documents})
+          <FileText className="h-4 w-4" />
+          {t("documents")} ({stats.documents})
         </button>
         <button
           type="button"
           onClick={() => handleFilterChange("other")}
-          className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-            filter === "other"
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted text-muted-foreground hover:bg-muted/80"
-          }`}
+          className={`flex items-center gap-2 ${filter === "other" ? "ui-button-primary" : "ui-button-muted"}`}
         >
-          📦 {t("others")} ({stats.others})
+          <Archive className="h-4 w-4" />
+          {t("others")} ({stats.others})
         </button>
       </div>
 
       {/* File Grid */}
       {files.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed border-border py-16">
-          <span className="text-4xl">📁</span>
+          <Folder className="h-10 w-10 text-muted-foreground" />
           <p className="mt-4 text-lg font-medium text-foreground">
             {t("noFiles")}
           </p>
@@ -477,9 +474,12 @@ export default function FilesPage() {
                         loading="lazy"
                       />
                     ) : (
-                      <div className="flex h-full items-center justify-center text-5xl">
-                        {getFileIcon(file.mime_type)}
-                      </div>
+                    <div className="flex h-full items-center justify-center">
+                      {(() => {
+                        const Icon = getFileIcon(file.mime_type);
+                        return <Icon className="h-10 w-10 text-muted-foreground" />;
+                      })()}
+                    </div>
                     )}
 
                     {/* Hover overlay with delete button (not in select mode) */}
@@ -495,20 +495,7 @@ export default function FilesPage() {
                           className="rounded-full bg-red-600 p-2 text-white transition-colors hover:bg-red-700"
                           title={t("delete")}
                         >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-5 w-5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                            />
-                          </svg>
+                          <X className="h-5 w-5" />
                         </button>
                       </div>
                     )}
@@ -535,7 +522,7 @@ export default function FilesPage() {
                 type="button"
                 onClick={() => setPage(1)}
                 disabled={!pagination.hasPrev}
-                className="rounded-lg bg-muted px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted/80 disabled:opacity-50"
+                className="ui-button-muted px-3 py-2 text-sm disabled:opacity-50"
               >
                 «
               </button>
@@ -543,7 +530,7 @@ export default function FilesPage() {
                 type="button"
                 onClick={() => setPage(page - 1)}
                 disabled={!pagination.hasPrev}
-                className="rounded-lg bg-muted px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted/80 disabled:opacity-50"
+                className="ui-button-muted px-3 py-2 text-sm disabled:opacity-50"
               >
                 ‹
               </button>
@@ -566,11 +553,7 @@ export default function FilesPage() {
                       key={pageNum}
                       type="button"
                       onClick={() => setPage(pageNum)}
-                      className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                        page === pageNum
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-foreground hover:bg-muted/80"
-                      }`}
+                      className={page === pageNum ? "ui-button-primary px-3 py-2 text-sm" : "ui-button-muted px-3 py-2 text-sm"}
                     >
                       {pageNum}
                     </button>
@@ -582,7 +565,7 @@ export default function FilesPage() {
                 type="button"
                 onClick={() => setPage(page + 1)}
                 disabled={!pagination.hasNext}
-                className="rounded-lg bg-muted px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted/80 disabled:opacity-50"
+                className="ui-button-muted px-3 py-2 text-sm disabled:opacity-50"
               >
                 ›
               </button>
@@ -590,7 +573,7 @@ export default function FilesPage() {
                 type="button"
                 onClick={() => setPage(pagination.totalPages)}
                 disabled={!pagination.hasNext}
-                className="rounded-lg bg-muted px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted/80 disabled:opacity-50"
+                className="ui-button-muted px-3 py-2 text-sm disabled:opacity-50"
               >
                 »
               </button>
@@ -616,26 +599,13 @@ export default function FilesPage() {
             onKeyDown={(e) => e.stopPropagation()}
           >
             {/* Close button */}
-            <button
-              type="button"
-              onClick={() => setSelectedFile(null)}
-              className="absolute right-4 top-4 z-10 rounded-full bg-black/50 p-2 text-white transition-colors hover:bg-black/70"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedFile(null)}
+                  className="absolute right-4 top-4 z-10 rounded-full bg-black/50 p-2 text-white transition-colors hover:bg-black/70"
+                >
+                  <X className="h-6 w-6" />
+                </button>
 
             {/* Preview Content */}
             <div className="flex max-h-[70vh] items-center justify-center bg-muted p-4">
@@ -647,9 +617,10 @@ export default function FilesPage() {
                 />
               ) : (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <span className="text-8xl">
-                    {getFileIcon(selectedFile.mime_type)}
-                  </span>
+                  {(() => {
+                    const Icon = getFileIcon(selectedFile.mime_type);
+                    return <Icon className="h-16 w-16 text-muted-foreground" />;
+                  })()}
                   <p className="mt-4 text-lg font-medium text-muted-foreground">
                     {t("noPreview")}
                   </p>
@@ -673,7 +644,7 @@ export default function FilesPage() {
                   download={selectedFile.original_name}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                  className="ui-button-primary px-4 py-2 text-sm"
                 >
                   {t("download")}
                 </a>
@@ -684,7 +655,7 @@ export default function FilesPage() {
                     setFileToDelete(selectedFile);
                     setDeleteConfirm("single");
                   }}
-                  className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700"
+                  className="ui-button-danger px-4 py-2 text-sm"
                 >
                   {t("delete")}
                 </button>
@@ -729,7 +700,7 @@ export default function FilesPage() {
                   setDeleteConfirm(null);
                   setFileToDelete(null);
                 }}
-                className="rounded-lg bg-muted px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted/80"
+                className="ui-button-muted px-4 py-2 text-sm"
                 disabled={deleting}
               >
                 {t("cancel")}
@@ -743,7 +714,7 @@ export default function FilesPage() {
                     handleSingleDelete(fileToDelete);
                   }
                 }}
-                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+                className="ui-button-danger px-4 py-2 text-sm disabled:opacity-50"
                 disabled={deleting}
               >
                 {deleting ? t("deleting") : t("delete")}

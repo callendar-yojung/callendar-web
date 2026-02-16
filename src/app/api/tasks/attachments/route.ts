@@ -1,24 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth-helper";
 import {
   getTaskAttachments,
   attachFileToTask,
   detachFileFromTask,
   deleteTaskAttachment,
+  getTaskAttachmentById,
 } from "@/lib/task-attachment";
 import { getFileById, deleteFileRecord } from "@/lib/file";
 import { formatBytes } from "@/lib/storage";
 import { unlink } from "node:fs/promises";
 import path from "node:path";
+import { requireTaskAccess } from "@/lib/access";
 
 // GET /api/tasks/attachments?task_id={taskId}
 export async function GET(request: NextRequest) {
   try {
-    const user = await getAuthUser(request);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const searchParams = request.nextUrl.searchParams;
     const taskId = searchParams.get("task_id");
 
@@ -28,6 +24,9 @@ export async function GET(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    const access = await requireTaskAccess(request, Number(taskId));
+    if (access instanceof NextResponse) return access;
 
     const attachments = await getTaskAttachments(Number(taskId));
 
@@ -51,11 +50,6 @@ export async function GET(request: NextRequest) {
 // Body: { task_id: number, file_id: number }
 export async function POST(request: NextRequest) {
   try {
-    const user = await getAuthUser(request);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const body = await request.json();
     const { task_id, file_id } = body;
 
@@ -65,6 +59,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    const access = await requireTaskAccess(request, Number(task_id));
+    if (access instanceof NextResponse) return access;
 
     // 파일 존재 여부 확인
     const file = await getFileById(Number(file_id));
@@ -78,7 +75,7 @@ export async function POST(request: NextRequest) {
     const attachmentId = await attachFileToTask(
       Number(task_id),
       Number(file_id),
-      user.memberId
+      access.user.memberId
     );
 
     return NextResponse.json({
@@ -97,11 +94,6 @@ export async function POST(request: NextRequest) {
 // DELETE /api/tasks/attachments?task_id={taskId}&file_id={fileId}&delete_file={boolean}
 export async function DELETE(request: NextRequest) {
   try {
-    const user = await getAuthUser(request);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const searchParams = request.nextUrl.searchParams;
     const taskId = searchParams.get("task_id");
     const fileId = searchParams.get("file_id");
@@ -109,6 +101,13 @@ export async function DELETE(request: NextRequest) {
     const deleteFile = searchParams.get("delete_file") === "true";
 
     if (attachmentId) {
+      const attachment = await getTaskAttachmentById(Number(attachmentId));
+      if (!attachment) {
+        return NextResponse.json({ error: "Attachment not found" }, { status: 404 });
+      }
+      const access = await requireTaskAccess(request, attachment.task_id);
+      if (access instanceof NextResponse) return access;
+
       // attachment_id로 삭제
       const success = await deleteTaskAttachment(Number(attachmentId));
       return NextResponse.json({ success });
@@ -120,6 +119,9 @@ export async function DELETE(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    const access = await requireTaskAccess(request, Number(taskId));
+    if (access instanceof NextResponse) return access;
 
     // 첨부 연결 해제
     const detached = await detachFileFromTask(Number(taskId), Number(fileId));

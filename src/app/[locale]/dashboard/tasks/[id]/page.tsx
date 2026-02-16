@@ -92,6 +92,7 @@ export default function TaskDetailPage() {
       workspaceType={currentWorkspace.type}
       ownerId={currentWorkspace.owner_id}
       onEdit={() => router.push(`/dashboard/tasks/${taskId}/edit`)}
+      onExport={() => router.push(`/dashboard/tasks/${taskId}/export`)}
       onDelete={handleDelete}
       onStatusChange={handleStatusChange}
     />

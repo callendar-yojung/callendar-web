@@ -12,16 +12,24 @@ import {
 	PointerSensor,
 	type DragMoveEvent,
 } from "@dnd-kit/core";
+import {
+	LayoutDashboard,
+	CheckSquare,
+	Calendar,
+	StickyNote,
+	Folder,
+	Users,
+} from "lucide-react";
 import WorkspaceSwitcher from "./WorkspaceSwitcher";
 import UserMenu from "./UserMenu";
 import WorkspaceList from "@/components/dashboard/WorkspaceList";
 
 const baseNavItems = [
-	{ key: "overview", href: "/dashboard", icon: "📊" },
-	{ key: "tasks", href: "/dashboard/tasks", icon: "✅" },
-	{ key: "calendar", href: "/dashboard/calendar", icon: "📅" },
-	{ key: "memo", href: "/dashboard/memo", icon: "📝" },
-	{ key: "files", href: "/dashboard/files", icon: "📁" },
+	{ key: "overview", href: "/dashboard", icon: LayoutDashboard },
+	{ key: "tasks", href: "/dashboard/tasks", icon: CheckSquare },
+	{ key: "calendar", href: "/dashboard/calendar", icon: Calendar },
+	{ key: "memo", href: "/dashboard/memo", icon: StickyNote },
+	{ key: "files", href: "/dashboard/files", icon: Folder },
 ];
 
 // Sidebar width constraints
@@ -112,7 +120,7 @@ export default function Sidebar({
 	const navItems = useMemo(() => {
 		const items = [...baseNavItems];
 		if (isTeamAdmin) {
-			items.push({ key: "teamAdmin", href: "/dashboard/teams", icon: "👥" });
+			items.push({ key: "teamAdmin", href: "/dashboard/teams", icon: Users });
 		}
 		return items;
 	}, [isTeamAdmin]);
@@ -212,7 +220,7 @@ export default function Sidebar({
 			<aside
 				ref={sidebarRef}
 				style={{ width: isMobile ? "80vw" : `${sidebarWidth}px` }}
-				className={`fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-sidebar-border bg-sidebar-background transition-transform ${
+				className={`fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-sidebar-border bg-sidebar-background transition-transform overscroll-contain touch-pan-y ${
 					isMobile
 						? mobileOpen
 							? "translate-x-0"
@@ -228,7 +236,7 @@ export default function Sidebar({
 							<button
 								type="button"
 								onClick={onClose}
-								className="ml-2 rounded border border-border bg-background px-2 py-1 text-xs"
+								className="ui-button ml-2 px-2 py-1 text-xs"
 							>
 								Close
 							</button>
@@ -241,7 +249,7 @@ export default function Sidebar({
 					{/* Workspace List - Resizable */}
 					<div
 						style={{ height: `${workspaceHeight}px` }}
-						className="flex-shrink-0 overflow-y-auto px-4"
+						className="flex-shrink-0 overflow-y-auto px-4 overscroll-contain touch-pan-y"
 					>
 						<WorkspaceList />
 					</div>
@@ -269,11 +277,12 @@ export default function Sidebar({
 					</div>
 
 					{/* Navigation - Takes remaining space */}
-					<nav className="flex-1 space-y-1 overflow-y-auto p-4">
+					<nav className="flex-1 space-y-1 overflow-y-auto p-4 overscroll-contain touch-pan-y">
 						{navItems.map((item) => {
 							const isActive =
 								pathname === item.href ||
 								(item.href !== "/dashboard" && pathname.startsWith(item.href));
+							const Icon = item.icon;
 
 							return (
 								<Link
@@ -285,7 +294,7 @@ export default function Sidebar({
 											: "text-muted-foreground hover:bg-hover hover:text-foreground"
 									}`}
 								>
-									<span className="text-lg">{item.icon}</span>
+									<Icon className="h-4 w-4" />
 									{t(item.key)}
 								</Link>
 							);

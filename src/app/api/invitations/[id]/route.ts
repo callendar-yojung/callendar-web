@@ -1,7 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
 import { respondToInvitation } from "@/lib/invitation";
 import { markNotificationsReadBySource } from "@/lib/notification";
+import {
+  jsonError,
+  jsonServerError,
+  jsonSuccess,
+  jsonUnauthorized,
+} from "@/lib/api-response";
 
 // PATCH /api/invitations/{id} { action: 'accept' | 'decline' }
 export async function PATCH(
@@ -10,18 +16,18 @@ export async function PATCH(
 ) {
   try {
     const user = await getAuthUser(request);
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!user) return jsonUnauthorized();
 
     const { id } = await params;
     const invitationId = Number(id);
     if (Number.isNaN(invitationId)) {
-      return NextResponse.json({ error: "Invalid invitation id" }, { status: 400 });
+      return jsonError("Invalid invitation id", 400);
     }
 
     const body = await request.json();
     const action = body?.action === "accept" ? "accept" : body?.action === "decline" ? "decline" : null;
     if (!action) {
-      return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+      return jsonError("Invalid action", 400);
     }
 
     const result = await respondToInvitation({
@@ -31,14 +37,13 @@ export async function PATCH(
     });
 
     if (!result.success) {
-      return NextResponse.json({ error: result.message || "Failed" }, { status: 400 });
+      return jsonError(result.message || "Failed", 400);
     }
 
     await markNotificationsReadBySource(user.memberId, "TEAM_INVITE", invitationId);
 
-    return NextResponse.json({ success: true });
+    return jsonSuccess();
   } catch (error) {
-    console.error("Failed to respond invitation:", error);
-    return NextResponse.json({ error: "Failed to respond invitation" }, { status: 500 });
+    return jsonServerError(error, "Failed to respond invitation");
   }
 }

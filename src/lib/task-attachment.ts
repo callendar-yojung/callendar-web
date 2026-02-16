@@ -18,6 +18,21 @@ export interface TaskAttachmentWithFile extends TaskAttachment {
   mime_type: string | null;
 }
 
+export interface TaskAttachmentRecord extends TaskAttachment {}
+
+export async function getTaskAttachmentById(
+  attachmentId: number
+): Promise<TaskAttachmentRecord | null> {
+  const [rows] = await pool.execute<RowDataPacket[]>(
+    `SELECT attachment_id, task_id, file_id, created_at, created_by
+     FROM task_attachments
+     WHERE attachment_id = ?
+     LIMIT 1`,
+    [attachmentId]
+  );
+  return rows.length > 0 ? (rows[0] as TaskAttachmentRecord) : null;
+}
+
 /**
  * 태스크에 파일 첨부
  */

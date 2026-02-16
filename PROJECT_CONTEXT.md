@@ -17,6 +17,9 @@ A multi-workspace SaaS-style dashboard built with Next.js (App Router) that supp
 - Shared UI components in `src/components/...`
 - Data access / queries in `src/lib/...`
 - Translations in `messages/*.json`
+- Access control helpers in `src/lib/access.ts`
+- Export/share policy in `docs/export-policy.md`
+- Manual migrations in `migrations/`
 
 ## Key Concepts
 ### Workspaces
@@ -45,6 +48,11 @@ A multi-workspace SaaS-style dashboard built with Next.js (App Router) that supp
 ### Files & Attachments
 - File upload API: `src/app/api/files/upload/route.ts`
 - Attachments can be linked to tasks.
+
+### Exports / Sharing
+- Export setup page: `/dashboard/tasks/[id]/export`
+- Export view page: `/export/tasks/[token]`
+- Access rules documented in `docs/export-policy.md`
 
 ### Tags
 - Tags are scoped by `owner_type` + `owner_id`.
@@ -89,6 +97,11 @@ Refer to `database_setup.sql` for full schema. Common tables include:
   - `owner_type`: `personal` or `team`
   - `owner_id`: member_id or team_id
 - API routes validate ownership and permissions before write operations.
+- Prefer centralized access checks in `src/lib/access.ts`.
+
+## Migrations
+- Manual SQL migrations live in `migrations/`.
+- Apply in order and record in `migrations/APPLIED.md`.
 
 ## If You’re Building a Similar App
 Reuse these patterns:

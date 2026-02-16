@@ -63,8 +63,8 @@ jobs:
       # 3️⃣ 빌드 (webpack 사용)
       - name: Install & Build
         run: |
-          npm install -g next
           npm ci
+          npm run i18n:check
           npm run build
 
       # 4️⃣ SSH 키 설정

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useTranslations } from "next-intl";
+import { Check, ChevronDown, Plus, UserCircle2, UsersRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 
@@ -100,7 +101,7 @@ export default function WorkspaceSwitcher() {
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="flex w-full items-center justify-between gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2.5 text-left transition-all hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+          className="flex w-full items-center justify-between gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-3 text-left transition-all hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 sm:py-2.5"
         >
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <div
@@ -111,33 +112,9 @@ export default function WorkspaceSwitcher() {
               }`}
             >
               {currentWorkspace?.type === "personal" ? (
-                <svg
-                  className="h-5 w-5 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                  />
-                </svg>
+                <UserCircle2 className="h-5 w-5 text-white" />
               ) : (
-                <svg
-                  className="h-5 w-5 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                  />
-                </svg>
+                <UsersRound className="h-5 w-5 text-white" />
               )}
             </div>
             <div className="min-w-0 flex-1">
@@ -155,24 +132,14 @@ export default function WorkspaceSwitcher() {
               </p>
             </div>
           </div>
-          <svg
+          <ChevronDown
             className={`h-5 w-5 text-gray-400 transition-transform flex-shrink-0 ${isOpen ? "rotate-180" : ""}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 9l-7 7-7-7"
-            />
-          </svg>
+          />
         </button>
 
         {/* 드롭다운 */}
         {isOpen && (
-          <div className="absolute left-0 top-full z-50 mt-2 w-full min-w-[240px] max-h-[420px] max-w-[90vw] overflow-y-auto overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl">
+          <div className="absolute left-0 top-full z-50 mt-2 w-full min-w-[240px] max-h-[70vh] max-w-[90vw] overflow-y-auto overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl overscroll-contain touch-pan-y">
             {/* 개인 워크스페이스 섹션 */}
             <div className="p-2">
               <div className="flex items-center justify-between px-3 py-2">
@@ -185,7 +152,7 @@ export default function WorkspaceSwitcher() {
                   key={primaryPersonalWorkspace.workspace_id}
                   type="button"
                   onClick={() => handleSelect(primaryPersonalWorkspace)}
-                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-all ${
+                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition-all sm:py-2.5 ${
                     currentWorkspace?.workspace_id ===
                     primaryPersonalWorkspace.workspace_id
                       ? "bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-500/20"
@@ -193,19 +160,7 @@ export default function WorkspaceSwitcher() {
                   }`}
                 >
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 shadow-sm">
-                    <svg
-                      className="h-4 w-4 text-white"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                      />
-                    </svg>
+                    <UserCircle2 className="h-4 w-4 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
@@ -214,19 +169,7 @@ export default function WorkspaceSwitcher() {
                   </div>
                   {currentWorkspace?.workspace_id ===
                     primaryPersonalWorkspace.workspace_id && (
-                    <svg
-                      className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
+                    <Check className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
                   )}
                 </button>
               ) : (
@@ -259,7 +202,7 @@ export default function WorkspaceSwitcher() {
                         );
                         if (teamWs) handleSelect(teamWs);
                       }}
-                      className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-all ${
+                      className={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition-all sm:py-2.5 ${
                         currentWorkspace?.type === "team" &&
                         currentWorkspace?.owner_id === team.id
                           ? "bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-500/20"
@@ -267,19 +210,7 @@ export default function WorkspaceSwitcher() {
                       }`}
                     >
                       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-cyan-600 shadow-sm">
-                        <svg
-                          className="h-4 w-4 text-white"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                          />
-                        </svg>
+                        <UsersRound className="h-4 w-4 text-white" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">
@@ -291,38 +222,14 @@ export default function WorkspaceSwitcher() {
                       </div>
                       {currentWorkspace?.type === "team" &&
                         currentWorkspace?.owner_id === team.id && (
-                          <svg
-                            className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
+                          <Check className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
                         )}
                     </button>
                   ))}
                 </div>
               ) : (
                 <div className="px-3 py-6 text-center">
-                  <svg
-                    className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                    />
-                  </svg>
+                  <UsersRound className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" />
                   <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                     {t("noTeams") || "No teams yet"}
                   </p>
@@ -340,22 +247,10 @@ export default function WorkspaceSwitcher() {
                   setIsOpen(false);
                   setShowCreateModal(true);
                 }}
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-blue-600 dark:text-blue-400 transition-all hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-blue-600 dark:text-blue-400 transition-all hover:bg-blue-50 dark:hover:bg-blue-900/20 sm:py-2.5"
               >
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-dashed border-blue-300 dark:border-blue-600">
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 4v16m8-8H4"
-                    />
-                  </svg>
+                  <Plus className="h-4 w-4" />
                 </div>
                 <span className="text-sm font-semibold">
                   {t("createTeam")}

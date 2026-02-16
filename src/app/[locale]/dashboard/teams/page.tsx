@@ -68,6 +68,11 @@ export default function TeamSettingsPage() {
   const [loadingRoles, setLoadingRoles] = useState(false);
   const [loadingRolePermissions, setLoadingRolePermissions] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [limitInfo, setLimitInfo] = useState<{
+    current: number;
+    max: number;
+    planName?: string | null;
+  } | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [currentMemberId, setCurrentMemberId] = useState<number | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -107,6 +112,7 @@ export default function TeamSettingsPage() {
 
   useEffect(() => {
     if (!selectedTeamId) return;
+    setLimitInfo(null);
 
     const fetchMembers = async () => {
       try {
@@ -252,6 +258,7 @@ export default function TeamSettingsPage() {
     if (!selectedTeamId || !selectedMember) return;
     setActionLoading(true);
     setError(null);
+    setLimitInfo(null);
     try {
       const res = await fetch(`/api/teams/${selectedTeamId}/invitations`, {
         method: "POST",
@@ -263,6 +270,17 @@ export default function TeamSettingsPage() {
       });
       const data = await res.json();
       if (!res.ok) {
+        if (data?.code === "MEMBER_LIMIT_REACHED") {
+          setLimitInfo({
+            current: Number(data.current || 0),
+            max: Number(data.max || 0),
+            planName: data.plan_name ?? null,
+          });
+          setError(
+            t("maxMembers", { count: Number(data.max || 0) || memberLimit })
+          );
+          return;
+        }
         setError(data.error || t("errorAddMember"));
         return;
       }
@@ -271,6 +289,7 @@ export default function TeamSettingsPage() {
       setMemberSearch([]);
       setShowSearch(false);
       setError(t("inviteSent"));
+      setLimitInfo(null);
     } catch (err) {
       console.error(err);
       setError(t("errorAddMember"));
@@ -742,6 +761,30 @@ export default function TeamSettingsPage() {
                           max: memberLimit,
                         })}
                       </p>
+                    )}
+
+                    {limitInfo && (
+                      <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                        <div className="font-medium">
+                          {t("maxMembers", { count: limitInfo.max })}
+                        </div>
+                        <div className="mt-1 text-xs text-amber-800">
+                          {t("memberCount", {
+                            current: limitInfo.current,
+                            max: limitInfo.max,
+                          })}
+                          {limitInfo.planName ? ` · ${limitInfo.planName}` : ""}
+                        </div>
+                        {isAdmin && (
+                          <button
+                            type="button"
+                            onClick={handleManagePlan}
+                            className="mt-2 rounded-md border border-amber-300 px-2.5 py-1 text-xs font-medium text-amber-900 hover:bg-amber-100"
+                          >
+                            {t("managePlan")}
+                          </button>
+                        )}
+                      </div>
                     )}
 
                     {error && (

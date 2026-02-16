@@ -1,6 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
 import { deleteNotification, markNotificationRead } from "@/lib/notification";
+import {
+  jsonError,
+  jsonServerError,
+  jsonSuccess,
+  jsonUnauthorized,
+} from "@/lib/api-response";
 
 // PATCH /api/notifications/{id}
 export async function PATCH(
@@ -9,19 +15,18 @@ export async function PATCH(
 ) {
   try {
     const user = await getAuthUser(request);
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!user) return jsonUnauthorized();
 
     const { id } = await params;
     const notificationId = Number(id);
     if (Number.isNaN(notificationId)) {
-      return NextResponse.json({ error: "Invalid notification id" }, { status: 400 });
+      return jsonError("Invalid notification id", 400);
     }
 
     const success = await markNotificationRead(notificationId, user.memberId);
-    return NextResponse.json({ success });
+    return jsonSuccess({ success });
   } catch (error) {
-    console.error("Failed to mark notification read:", error);
-    return NextResponse.json({ error: "Failed to update notification" }, { status: 500 });
+    return jsonServerError(error, "Failed to update notification");
   }
 }
 
@@ -32,18 +37,17 @@ export async function DELETE(
 ) {
   try {
     const user = await getAuthUser(request);
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!user) return jsonUnauthorized();
 
     const { id } = await params;
     const notificationId = Number(id);
     if (Number.isNaN(notificationId)) {
-      return NextResponse.json({ error: "Invalid notification id" }, { status: 400 });
+      return jsonError("Invalid notification id", 400);
     }
 
     const success = await deleteNotification(notificationId, user.memberId);
-    return NextResponse.json({ success });
+    return jsonSuccess({ success });
   } catch (error) {
-    console.error("Failed to delete notification:", error);
-    return NextResponse.json({ error: "Failed to delete notification" }, { status: 500 });
+    return jsonServerError(error, "Failed to delete notification");
   }
 }

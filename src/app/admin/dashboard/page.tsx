@@ -1,6 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  Users,
+  Building2,
+  CreditCard,
+  ClipboardList,
+  UserPlus,
+  ChartBar,
+  Settings,
+} from "lucide-react";
 
 interface DashboardStats {
   totalMembers: number;
@@ -44,26 +53,26 @@ export default function AdminDashboardPage() {
     {
       title: "총 회원 수",
       value: stats?.totalMembers || 0,
-      icon: "👥",
+      icon: Users,
       color: "bg-blue-500",
       change: `+${stats?.recentMembers || 0} (7일)`,
     },
     {
       title: "총 팀 수",
       value: stats?.totalTeams || 0,
-      icon: "🏢",
+      icon: Building2,
       color: "bg-green-500",
     },
     {
       title: "활성 구독",
       value: stats?.activeSubscriptions || 0,
-      icon: "💳",
+      icon: CreditCard,
       color: "bg-purple-500",
     },
     {
       title: "총 태스크",
       value: stats?.totalTasks || 0,
-      icon: "📝",
+      icon: ClipboardList,
       color: "bg-orange-500",
     },
   ];
@@ -89,7 +98,7 @@ export default function AdminDashboardPage() {
           >
             <div className="flex items-center justify-between mb-4">
               <div className={`p-3 ${card.color} rounded-lg`}>
-                <span className="text-2xl">{card.icon}</span>
+                <card.icon className="h-5 w-5 text-white" />
               </div>
               {card.change && (
                 <span className="text-xs text-green-600 dark:text-green-400 font-medium">
@@ -148,14 +157,17 @@ export default function AdminDashboardPage() {
             빠른 작업
           </h2>
           <div className="space-y-2">
-            <button className="w-full px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors">
-              ➕ 새 관리자 추가
+            <button className="w-full flex items-center gap-2 px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors">
+              <UserPlus className="h-4 w-4" />
+              새 관리자 추가
             </button>
-            <button className="w-full px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors">
-              📊 상세 리포트 보기
+            <button className="w-full flex items-center gap-2 px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors">
+              <ChartBar className="h-4 w-4" />
+              상세 리포트 보기
             </button>
-            <button className="w-full px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors">
-              ⚙️ 시스템 설정
+            <button className="w-full flex items-center gap-2 px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors">
+              <Settings className="h-4 w-4" />
+              시스템 설정
             </button>
           </div>
         </div>
@@ -163,4 +175,3 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
-

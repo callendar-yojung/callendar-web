@@ -1,10 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAuthUser } from "@/lib/auth-helper";
+import { NextRequest } from "next/server";
+import { requireOwnerAccess } from "@/lib/access";
 import { createFileRecord } from "@/lib/file";
 import { canUploadFile, type OwnerType, formatBytes } from "@/lib/storage";
 import { v4 as uuidv4 } from "uuid";
 import { writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
+import {
+  jsonError,
+  jsonServerError,
+  jsonSuccess,
+} from "@/lib/api-response";
 
 // 허용된 파일 타입
 const ALLOWED_TYPES = [
@@ -35,13 +40,8 @@ const ALLOWED_TYPES = [
   "application/x-7z-compressed",
 ];
 // POST /api/files/upload
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<Response> {
   try {
-    const user = await getAuthUser(request);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
     const ownerType = formData.get("owner_type") as OwnerType;
@@ -49,29 +49,24 @@ export async function POST(request: NextRequest) {
     const taskId = formData.get("task_id") as string | null; // 선택적: 태스크에 바로 첨부
 
     if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
+      return jsonError("No file provided", 400);
     }
 
     if (!ownerType || !ownerId) {
-      return NextResponse.json(
-        { error: "owner_type and owner_id are required" },
-        { status: 400 }
-      );
+      return jsonError("owner_type and owner_id are required", 400);
     }
 
     if (!["team", "personal"].includes(ownerType)) {
-      return NextResponse.json(
-        { error: "Invalid owner_type. Must be 'team' or 'personal'" },
-        { status: 400 }
-      );
+      return jsonError("Invalid owner_type. Must be 'team' or 'personal'", 400);
     }
+
+    const access = await requireOwnerAccess(request, ownerType, Number(ownerId));
+    if (access instanceof Response) return access;
+    const { user } = access;
 
     // 파일 타입 검증
     if (!ALLOWED_TYPES.includes(file.type)) {
-      return NextResponse.json(
-        { error: `File type not allowed: ${file.type}` },
-        { status: 400 }
-      );
+      return jsonError(`File type not allowed: ${file.type}`, 400);
     }
 
     const fileSizeBytes = file.size;
@@ -79,15 +74,11 @@ export async function POST(request: NextRequest) {
     // 용량 체크
     const uploadCheck = await canUploadFile(ownerType, Number(ownerId), fileSizeBytes);
     if (!uploadCheck.allowed) {
-      return NextResponse.json(
-        {
-          error: uploadCheck.reason,
-          used_bytes: uploadCheck.used_bytes,
-          limit_bytes: uploadCheck.limit_bytes,
-          max_file_size_bytes: uploadCheck.max_file_size_bytes,
-        },
-        { status: 403 }
-      );
+      return jsonError(uploadCheck.reason || "Upload limit exceeded", 403, "LIMIT_EXCEEDED", {
+        used_bytes: uploadCheck.used_bytes,
+        limit_bytes: uploadCheck.limit_bytes,
+        max_file_size_bytes: uploadCheck.max_file_size_bytes,
+      });
     }
 
     // 파일 저장 경로 생성
@@ -141,8 +132,7 @@ export async function POST(request: NextRequest) {
       await attachFileToTask(Number(taskId), fileId, user.memberId);
     }
 
-    return NextResponse.json({
-      success: true,
+    return jsonSuccess({
       file: {
         file_id: fileId,
         original_name: file.name,
@@ -154,10 +144,6 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("File upload error:", error);
-    return NextResponse.json(
-      { error: "Failed to upload file" },
-      { status: 500 }
-    );
+    return jsonServerError(error, "Failed to upload file");
   }
 }

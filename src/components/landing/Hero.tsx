@@ -2,6 +2,7 @@
 
 import { Link } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
+import { LayoutDashboard } from "lucide-react";
 
 export default function Hero() {
   const t = useTranslations("hero");
@@ -36,7 +37,7 @@ export default function Hero() {
 
           <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link
-              href="/login"
+              href="/dashboard"
               className="w-full rounded-xl bg-primary px-8 py-4 text-base font-medium text-primary-foreground transition-all hover:opacity-90 hover:shadow-lg sm:w-auto"
             >
               {t("cta")}
@@ -77,7 +78,9 @@ export default function Hero() {
             <div className="aspect-[16/9] bg-gradient-to-br from-muted to-secondary">
               <div className="flex h-full items-center justify-center">
                 <div className="text-center">
-                  <div className="mb-4 text-6xl">📊</div>
+                  <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+                    <LayoutDashboard className="h-8 w-8 text-foreground" />
+                  </div>
                   <p className="text-muted-foreground">
                     {t("preview")}
                   </p>

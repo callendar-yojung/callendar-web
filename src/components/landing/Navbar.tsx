@@ -78,7 +78,7 @@ export default function Navbar() {
                 {t("login")}
               </Link>
               <Link
-                href="/login"
+                href="/dashboard"
                 className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:opacity-90"
               >
                 {t("getStarted")}
@@ -151,7 +151,7 @@ export default function Navbar() {
                   {t("login")}
                 </Link>
                 <Link
-                  href="/login"
+                  href="/dashboard"
                   className="rounded-lg bg-primary px-4 py-2 text-center text-sm font-medium text-primary-foreground"
                 >
                   {t("getStarted")}

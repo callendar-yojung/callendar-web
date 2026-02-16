@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAuthUser } from "@/lib/auth-helper";
 import { checkTeamMembership, getTeamById } from "@/lib/team";
 import { findMemberByEmailOrNickname, findMemberById } from "@/lib/member";
@@ -7,6 +7,12 @@ import pool from "@/lib/db";
 import type { RowDataPacket } from "mysql2";
 import { upsertTeamInvitation } from "@/lib/invitation";
 import { createNotification } from "@/lib/notification";
+import {
+  jsonError,
+  jsonServerError,
+  jsonSuccess,
+  jsonUnauthorized,
+} from "@/lib/api-response";
 
 // POST /api/teams/{id}/invitations
 export async function POST(
@@ -15,39 +21,39 @@ export async function POST(
 ) {
   try {
     const user = await getAuthUser(request);
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!user) return jsonUnauthorized();
 
     const { id } = await params;
     const teamId = Number(id);
     if (Number.isNaN(teamId)) {
-      return NextResponse.json({ error: "Invalid team id" }, { status: 400 });
+      return jsonError("Invalid team id", 400);
     }
 
     const team = await getTeamById(teamId);
     if (!team) {
-      return NextResponse.json({ error: "Team not found" }, { status: 404 });
+      return jsonError("Team not found", 404);
     }
     if (team.created_by !== user.memberId) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return jsonError("Forbidden", 403);
     }
 
     const body = await request.json();
     const invitedMemberId = Number(body?.invited_member_id);
     const identifier = typeof body?.identifier === "string" ? body.identifier.trim() : "";
     if (!identifier && Number.isNaN(invitedMemberId)) {
-      return NextResponse.json({ error: "identifier is required" }, { status: 400 });
+      return jsonError("identifier is required", 400);
     }
 
     const member = Number.isFinite(invitedMemberId)
       ? await findMemberById(invitedMemberId)
       : await findMemberByEmailOrNickname(identifier);
     if (!member) {
-      return NextResponse.json({ error: "Member not found" }, { status: 404 });
+      return jsonError("Member not found", 404);
     }
 
     const alreadyMember = await checkTeamMembership(teamId, member.member_id);
     if (alreadyMember) {
-      return NextResponse.json({ error: "Already a member" }, { status: 400 });
+      return jsonError("Already a member", 400);
     }
 
     const planInfo = await getActivePlanForOwner("team", teamId);
@@ -57,7 +63,11 @@ export async function POST(
     );
     const currentCount = Number(rows[0]?.count || 0);
     if (currentCount >= planInfo.max_members) {
-      return NextResponse.json({ error: "Member limit reached" }, { status: 400 });
+      return jsonError("Member limit reached", 400, "MEMBER_LIMIT_REACHED", {
+        current: currentCount,
+        max: planInfo.max_members,
+        plan_name: planInfo.name,
+      });
     }
 
     const invitationId = await upsertTeamInvitation({
@@ -76,9 +86,8 @@ export async function POST(
       source_id: invitationId,
     });
 
-    return NextResponse.json({ success: true, invitation_id: invitationId });
+    return jsonSuccess({ invitation_id: invitationId });
   } catch (error) {
-    console.error("Failed to create invitation:", error);
-    return NextResponse.json({ error: "Failed to invite member" }, { status: 500 });
+    return jsonServerError(error, "Failed to invite member");
   }
 }

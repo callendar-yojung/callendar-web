@@ -31,8 +31,8 @@ interface Tag {
   tag_id: number;
   name: string;
   color: string;
-  owner_type: "team" | "personal";
-  owner_id: number;
+  owner_type?: "team" | "personal";
+  owner_id?: number;
 }
 
 interface TaskAttachment {
@@ -49,9 +49,15 @@ interface TaskViewPanelProps {
   task: TaskViewData;
   workspaceType?: "team" | "personal";
   ownerId?: number;
-  onEdit: () => void;
+  onEdit?: () => void;
   onDelete?: (taskId: number) => void;
   onStatusChange?: (status: TaskViewData["status"]) => void;
+  onExport?: () => void;
+  showActions?: boolean;
+  showTags?: boolean;
+  showAttachments?: boolean;
+  availableTags?: Tag[];
+  attachmentsEndpoint?: string;
 }
 
 export default function TaskViewPanel({
@@ -61,6 +67,12 @@ export default function TaskViewPanel({
   onEdit,
   onDelete,
   onStatusChange,
+  onExport,
+  showActions = true,
+  showTags = true,
+  showAttachments = true,
+  availableTags: availableTagsOverride,
+  attachmentsEndpoint,
 }: TaskViewPanelProps) {
   const t = useTranslations("dashboard.tasks.modal");
   const tStatus = useTranslations("dashboard.tasks.status");
@@ -69,7 +81,11 @@ export default function TaskViewPanel({
   const [loadingAttachments, setLoadingAttachments] = useState(false);
 
   useEffect(() => {
-    if (!workspaceType || !ownerId) return;
+    if (availableTagsOverride) {
+      setAvailableTags(availableTagsOverride);
+      return;
+    }
+    if (!showTags || !workspaceType || !ownerId) return;
     const fetchTags = async () => {
       const res = await fetch(`/api/tags?owner_type=${workspaceType}&owner_id=${ownerId}`);
       if (res.ok) {
@@ -78,14 +94,15 @@ export default function TaskViewPanel({
       }
     };
     fetchTags();
-  }, [workspaceType, ownerId]);
+  }, [availableTagsOverride, showTags, workspaceType, ownerId]);
 
   useEffect(() => {
-    if (!task.id) return;
+    if (!showAttachments || !task.id) return;
     const fetchAttachments = async () => {
       setLoadingAttachments(true);
       try {
-        const response = await fetch(`/api/tasks/attachments?task_id=${task.id}`);
+        const endpoint = attachmentsEndpoint || `/api/tasks/attachments?task_id=${task.id}`;
+        const response = await fetch(endpoint);
         if (response.ok) {
           const data = await response.json();
           setAttachments(data.attachments || []);
@@ -95,7 +112,7 @@ export default function TaskViewPanel({
       }
     };
     fetchAttachments();
-  }, [task.id]);
+  }, [attachmentsEndpoint, showAttachments, task.id]);
 
   const statusLabels: Record<NonNullable<TaskViewData["status"]>, string> = {
     TODO: tStatus("pending"),
@@ -206,7 +223,7 @@ export default function TaskViewPanel({
             </div>
           )}
 
-        {task.tag_ids && task.tag_ids.length > 0 && (
+        {showTags && task.tag_ids && task.tag_ids.length > 0 && (
           <div>
           <h3 className="text-sm font-medium text-subtle-foreground mb-2 flex items-center gap-2">
             <TagIcon className="h-4 w-4" />
@@ -249,6 +266,7 @@ export default function TaskViewPanel({
           )}
         </div>
 
+        {showAttachments && (
         <div className="mt-4">
           <h3 className="text-sm font-medium text-subtle-foreground mb-2">
             {t("attachments")}
@@ -282,32 +300,46 @@ export default function TaskViewPanel({
             </p>
           )}
         </div>
+        )}
       </div>
 
-      <div className="flex justify-between mt-6 pt-4 border-t border-border">
-        <div>
-          {onDelete && task.id && (
-            <button
-              type="button"
-              onClick={() => onDelete(task.id!)}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors inline-flex items-center gap-2"
-            >
-              <Trash2 className="h-4 w-4" />
-              {t("delete")}
-            </button>
-          )}
+      {showActions && (
+        <div className="flex justify-between mt-6 pt-4 border-t border-border">
+          <div>
+            {onDelete && task.id && (
+              <button
+                type="button"
+                onClick={() => onDelete(task.id!)}
+                className="rounded-lg px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors inline-flex items-center gap-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                {t("delete")}
+              </button>
+            )}
+          </div>
+          <div className="flex gap-2">
+            {onExport && (
+              <button
+                type="button"
+                onClick={onExport}
+                className="rounded-lg border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted inline-flex items-center gap-2"
+              >
+                {t("export")}
+              </button>
+            )}
+            {onEdit && (
+              <button
+                type="button"
+                onClick={onEdit}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 inline-flex items-center gap-2"
+              >
+                <PencilLine className="h-4 w-4" />
+                {t("edit")}
+              </button>
+            )}
+          </div>
         </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={onEdit}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 inline-flex items-center gap-2"
-          >
-            <PencilLine className="h-4 w-4" />
-            {t("edit")}
-          </button>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
